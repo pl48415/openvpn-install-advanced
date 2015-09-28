@@ -39,7 +39,7 @@ else
 fi
 
 newclient () {
-        # Generates the custom client.ovpn
+        # This function is used to create udp client .ovpn file
         cp /etc/openvpn/client-common.txt ~/$1.ovpn
         echo "<ca>" >> ~/$1.ovpn
         cat /etc/openvpn/easy-rsa/pki/ca.crt >> ~/$1.ovpn
@@ -50,7 +50,7 @@ newclient () {
         echo "<key>" >> ~/$1.ovpn
         cat /etc/openvpn/easy-rsa/pki/private/$1.key >> ~/$1.ovpn
         echo "</key>" >> ~/$1.ovpn
-        if [ "$TLS" = "1" ]; then
+        if [ "$TLS" = "1" ]; then  #check if TLS is selected to add a TLS static key
 		echo "key-direction 1" >> ~/$1.ovpn
         echo "<tls-auth>" >> ~/$1.ovpn
         cat /etc/openvpn/easy-rsa/pki/private/ta.key >> ~/$1.ovpn
@@ -61,7 +61,7 @@ newclient () {
 
 
 newclienttcp () {
-	# Generates the custom client.ovpn
+	# This function is used to create tcp client .ovpn file
 	cp /etc/openvpn/clienttcp-common.txt ~/$1tcp.ovpn
 	echo "<ca>" >> ~/$1tcp.ovpn
 	cat /etc/openvpn/easy-rsa/pki/ca.crt >> ~/$1tcp.ovpn
@@ -72,7 +72,7 @@ newclienttcp () {
 	echo "<key>" >> ~/$1tcp.ovpn
 	cat /etc/openvpn/easy-rsa/pki/private/$1.key >> ~/$1tcp.ovpn
 	echo "</key>" >> ~/$1tcp.ovpn
-	if [ "$TLS" = "1" ]; then
+	if [ "$TLS" = "1" ]; then  #check if TLS is selected to add a TLS static key
 	echo "key-direction 1" >> ~/$1tcp.ovpn
 	echo "<tls-auth>" >> ~/$1tcp.ovpn
 	cat /etc/openvpn/easy-rsa/pki/private/ta.key >> ~/$1tcp.ovpn
@@ -91,7 +91,7 @@ if [[ "$IP" = "" ]]; then
 fi
 
 
-if [ -e /etc/openvpn/udp.conf -o -e /etc/openvpn/tcp.conf ]; then    #changed from server.conf to anything
+if [ -e /etc/openvpn/udp.conf -o -e /etc/openvpn/tcp.conf ]; then    #check if udp or tcp config file is present
 	while :
 	do
 	clear
@@ -114,11 +114,11 @@ if [ -e /etc/openvpn/udp.conf -o -e /etc/openvpn/tcp.conf ]; then    #changed fr
 			# Generates the custom client.ovpn
 			if [[ -e /etc/openvpn/udp.conf ]]; then
 			TLS=0
-			if [ -n "$(cat /etc/openvpn/udp.conf | grep tls-auth)" ]; then
-			TLS=1
+			if [ -n "$(cat /etc/openvpn/udp.conf | grep tls-auth)" ]; then #check if TLS is enabled in server config file so that static TLS key can be added to new client
+			TLS=1 
 			fi 
 			newclient "$CLIENT"
-			
+			#everything here is the same as above just for the tcp client
 			fi
 			if [[ -e /etc/openvpn/tcp.conf ]]; then
 			TLS=0
@@ -129,7 +129,12 @@ if [ -e /etc/openvpn/udp.conf -o -e /etc/openvpn/tcp.conf ]; then    #changed fr
 			fi
 			
 			echo ""
-			echo "Client $CLIENT added, certs available at ~/$CLIENT.ovpn"
+			if [ "$UDP" = 1 ]; then
+			echo "UDP client $CLIENT added, certs available at ~/$CLIENT.ovpn"
+			fi
+			if [ "$TCP" = 1 ]; then
+			echo "TCP client $CLIENT added, certs available at ~/$CLIENTtcp.ovpn"
+			fi
 			exit
 			;;
 			2)
@@ -156,7 +161,7 @@ if [ -e /etc/openvpn/udp.conf -o -e /etc/openvpn/tcp.conf ]; then    #changed fr
 			# And restart
 			if pgrep systemd-journal; then
 				sudo systemctl restart udp.service
-                sudo systemctl restart tcp.service
+                                sudo systemctl restart tcp.service
 			else
 				if [[ "$OS" = 'debian' ]]; then
 					/etc/init.d/openvpn restart
@@ -172,7 +177,7 @@ if [ -e /etc/openvpn/udp.conf -o -e /etc/openvpn/tcp.conf ]; then    #changed fr
 			echo ""
 			read -p "Do you really want to remove OpenVPN? [y/n]: " -e -i n REMOVE
 			if [[ "$REMOVE" = 'y' ]]; then
-			if [[ -e /etc/openvpn/udp.conf ]]; then
+			if [[ -e /etc/openvpn/udp.conf ]]; then  #removal of udp firewall rules
 				PORT=$(grep '^port ' /etc/openvpn/udp.conf | cut -d " " -f 2)
 				if pgrep firewalld; then
 					# Using both permanent and not permanent rules to avoid a firewalld reload.
@@ -189,13 +194,13 @@ if [ -e /etc/openvpn/udp.conf -o -e /etc/openvpn/tcp.conf ]; then    #changed fr
 				sed -i '/iptables -t nat -A POSTROUTING -s 10.8.0.0\/24 -j SNAT --to /d' $RCLOCAL
 				fi
 				
-				if [[ -e /etc/openvpn/tcp.conf ]]; then
-				PORT=$(grep '^port ' /etc/openvpn/udp.conf | cut -d " " -f 2)
+				if [[ -e /etc/openvpn/tcp.conf ]]; then #removal of tcp firewall rules
+				PORT=$(grep '^port ' /etc/openvpn/tcp.conf | cut -d " " -f 2)
 				if pgrep firewalld; then
 					# Using both permanent and not permanent rules to avoid a firewalld reload.
-					firewall-cmd --zone=public --remove-port=$PORT/udp
+					firewall-cmd --zone=public --remove-port=$PORT/tcp
 					firewall-cmd --zone=trusted --remove-source=1.8.0.0/24
-					firewall-cmd --permanent --zone=public --remove-port=$PORT/udp
+					firewall-cmd --permanent --zone=public --remove-port=$PORT/tcp
 					firewall-cmd --permanent --zone=trusted --remove-source=1.8.0.0/24
 				fi
 				if iptables -L | grep -q REJECT; then
@@ -374,8 +379,8 @@ else
 	# Create the PKI, set up the CA, the DH params and the server + client certificates
 	./easyrsa init-pki
 	cp vars.example vars
-	  #change key size to 4096 bit
-	sed -i 's/#set_var EASYRSA_KEY_SIZE	2048/set_var EASYRSA_KEY_SIZE   '$KEYSIZE'/' vars
+	  
+	sed -i 's/#set_var EASYRSA_KEY_SIZE	2048/set_var EASYRSA_KEY_SIZE   '$KEYSIZE'/' vars #change key size to desired size
 	./easyrsa --batch build-ca nopass
 	./easyrsa gen-dh
 	./easyrsa build-server-full server nopass
@@ -403,7 +408,7 @@ auth $DIGEST
 ifconfig-pool-persist ipp.txt" > /etc/openvpn/udp.conf
 	echo 'push "redirect-gateway def1 bypass-dhcp"' >> /etc/openvpn/udp.conf
 	if [ $TLS = 1 ]; then
-	echo "--tls-auth /etc/openvpn/easy-rsa/pki/private/ta.key 0" >> /etc/openvpn/udp.conf
+	echo "--tls-auth /etc/openvpn/easy-rsa/pki/private/ta.key 0" >> /etc/openvpn/udp.conf #TLS key information added to config file
 	fi
 	# DNS
 	case $DNS in
@@ -459,7 +464,7 @@ rcvbuf 0" > /etc/openvpn/tcp.conf
 	echo 'push "redirect-gateway def1 bypass-dhcp"' >> /etc/openvpn/tcp.conf
 	
 	if [ $TLS = 1 ]; then
-	echo "--tls-auth /etc/openvpn/easy-rsa/pki/private/ta.key 0" >> /etc/openvpn/tcp.conf
+	echo "--tls-auth /etc/openvpn/easy-rsa/pki/private/ta.key 0" >> /etc/openvpn/tcp.conf #TLS key information added to config file
 	fi	
 	# DNS
 	case $DNS in
@@ -561,8 +566,7 @@ crl-verify /etc/openvpn/easy-rsa/pki/crl.pem" >> /etc/openvpn/tcp.conf
 	fi
 	# And finally, restart OpenVPN
 	if [[ "$OS" = 'debian' ]]; then
-		# Little hack to check for systemd
-		if pgrep systemd-journal; then
+		if pgrep systemd-journal; then #this trick is explained here: https://ask.fedoraproject.org/en/question/23085/how-to-start-openvpn-service-at-boot-time/  , thanks to Cerin
 			if [ "$UDP" = 1 ]; then
 			echo "[Unit]
 Description=OpenVPN Robust And Highly Flexible Tunneling Application On <server>
@@ -649,7 +653,7 @@ sudo systemctl start tcp.service
 			IP=$USEREXTERNALIP
 		fi
 	fi
-	# client-common.txt is created so we have a template to add further users later
+	# client-common.txt is created so we have a template to add further UDP users later
 	if [ "$UDP" = 1 ]; then
 	echo "client
 dev tun
@@ -682,7 +686,7 @@ comp-lzo
 verb 3
 sndbuf 0
 rcvbuf 0
-" > /etc/openvpn/clienttcp-common.txt  #clienttcp-common.txt is created for tcp client
+" > /etc/openvpn/clienttcp-common.txt  # clienttcp-common.txt is created so we have a template to add further TCP users later
     
 newclienttcp "$CLIENT"
 	fi
@@ -693,6 +697,11 @@ newclienttcp "$CLIENT"
 	echo ""
 	echo "Finished!"
 	echo ""
-	echo "Your client config is available at ~/$CLIENT.ovpn"
+	if [ "$UDP" = 1 ]; then
+	echo "Your UDP client config is available at ~/$CLIENT.ovpn"
+	fi
+	if [ "$TCP" = 1 ]; then
+	echo "Your TCP client config is available at ~/$CLIENTtcp.ovpn"
+	fi
 	echo "If you want to add more clients, you simply need to run this script another time!"
 fi
