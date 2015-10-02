@@ -340,6 +340,22 @@ else
       break ;;
       esac
       done
+      
+      while :
+    do
+    clear
+    echo "Do you want to enable internal networking for the VPN(iptables olnly)?"
+	echo "This can allow VPN clients to communicate between them"
+	read -p "Allow internal networking [y/n]: " -e -i y INTERNALNETWORK
+     case $INTERNALNETWORK in
+      y) INTERNALNETWORK=1
+      break ;;
+      n) INTERNALNETWORK=0
+      break ;;
+      esac
+      done
+      
+      
 	echo ""
 	echo "What DNS do you want to use with the VPN?"
 	echo "   1) Current system resolvers"
@@ -445,6 +461,9 @@ persist-tun
 status openvpn-status.log
 verb 3
 crl-verify /etc/openvpn/easy-rsa/pki/crl.pem" >> /etc/openvpn/udp.conf
+ if [ "$INTERNALNETWORK" = 1 ]; then
+echo "client-to-client" >> /etc/openvpn/udp.conf
+fi
  fi 
  if [ "$TCP" = 1 ]; then
 echo "port $PORTTCP
@@ -462,6 +481,7 @@ auth $DIGEST
 sndbuf 0
 rcvbuf 0" > /etc/openvpn/tcp.conf
 	echo 'push "redirect-gateway def1 bypass-dhcp"' >> /etc/openvpn/tcp.conf
+	
 	
 	if [ $TLS = 1 ]; then
 	echo "--tls-auth /etc/openvpn/easy-rsa/pki/private/ta.key 0" >> /etc/openvpn/tcp.conf #TLS key information added to config file
@@ -501,6 +521,9 @@ persist-tun
 status openvpn-status.log
 verb 3
 crl-verify /etc/openvpn/easy-rsa/pki/crl.pem" >> /etc/openvpn/tcp.conf
+ if [ "$INTERNALNETWORK" = 1 ]; then
+echo "client-to-client" >> /etc/openvpn/tcp.conf
+fi
  fi
 
 
@@ -518,7 +541,17 @@ crl-verify /etc/openvpn/easy-rsa/pki/crl.pem" >> /etc/openvpn/tcp.conf
 	# Avoid an unneeded reboot
 	echo 1 > /proc/sys/net/ipv4/ip_forward
 	# Set NAT for the VPN subnet
+	   if [ "$INTERNALNETWORK" = 1 ]; then
 	    if [ "$UDP" = 1 ]; then
+	iptables -t nat -A POSTROUTING -s 10.8.0.0/24 ! -d 10.8.0.0/24 -j SNAT --to $IP
+		sed -i "1 a\iptables -t nat -A POSTROUTING -s 10.8.0.0/24 ! -d 10.8.0.0/24 -j SNAT --to $IP" $RCLOCAL
+	    fi
+		if [ "$TCP" = 1 ]; then
+	iptables -t nat -A POSTROUTING -s 1.8.0.0/24 ! -d 1.8.0.0/24 -j SNAT --to $IP
+		sed -i "1 a\iptables -t nat -A POSTROUTING -s 1.8.0.0/24 ! -d 1.8.0.0/24 -j SNAT --to $IP" $RCLOCAL
+	    fi
+	   else
+	   if [ "$UDP" = 1 ]; then
 	iptables -t nat -A POSTROUTING -s 10.8.0.0/24 -j SNAT --to $IP
 	sed -i "1 a\iptables -t nat -A POSTROUTING -s 10.8.0.0/24 -j SNAT --to $IP" $RCLOCAL
 	    fi
@@ -526,6 +559,7 @@ crl-verify /etc/openvpn/easy-rsa/pki/crl.pem" >> /etc/openvpn/tcp.conf
 	iptables -t nat -A POSTROUTING -s 1.8.0.0/24 -j SNAT --to $IP #This line and the next one are added for tcp server instance
 	sed -i "1 a\iptables -t nat -A POSTROUTING -s 1.8.0.0/24 -j SNAT --to $IP" $RCLOCAL
 	    fi
+	   fi
 	if pgrep firewalld; then
 		# We don't use --add-service=openvpn because that would only work with
 		# the default port. Using both permanent and not permanent rules to
@@ -687,7 +721,6 @@ verb 3
 sndbuf 0
 rcvbuf 0
 " > /etc/openvpn/clienttcp-common.txt  # clienttcp-common.txt is created so we have a template to add further TCP users later
-    
 newclienttcp "$CLIENT"
 	fi
 	# Generates the custom client.ovpn
@@ -698,10 +731,10 @@ newclienttcp "$CLIENT"
 	echo "Finished!"
 	echo ""
 	if [ "$UDP" = 1 ]; then
-	echo "Your UDP client config is available at ~/$CLIENT.ovpn"
+	echo Your UDP client config is available at ~/$CLIENT.ovpn
 	fi
 	if [ "$TCP" = 1 ]; then
-	echo "Your TCP client config is available at ~/$CLIENTtcp.ovpn"
+	echo Your TCP client config is available at ~/$CLIENTtcp.ovpn
 	fi
 	echo "If you want to add more clients, you simply need to run this script another time!"
 fi
