@@ -20,6 +20,8 @@ You can choose whether or not use a static preshared key for an additional layer
 
 You can create UDP or TCP server or both of them and choose a port for each of them.
 
+You can create personal DNS resolver that is accessible only through vpn so you can tunnel even DNS requests.
+
 Using TCP server with port 443 can bypass some network firewalls that block OpenVPN traffic.
 
 # Installation
