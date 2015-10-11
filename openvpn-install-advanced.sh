@@ -204,14 +204,14 @@ if [ -e /etc/openvpn/udp.conf -o -e /etc/openvpn/tcp.conf ]; then    #check if u
 					firewall-cmd --permanent --zone=trusted --remove-source=1.8.0.0/24
 				fi
 				if iptables -L | grep -q REJECT; then
-					sed -i "/iptables -I INPUT -p udp --dport $PORT -j ACCEPT/d" $RCLOCAL
+					sed -i "/iptables -I INPUT -p tcp --dport $PORT -j ACCEPT/d" $RCLOCAL
 					sed -i "/iptables -I FORWARD -s 1.8.0.0\/24 -j ACCEPT/d" $RCLOCAL
 					sed -i "/iptables -I FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT/d" $RCLOCAL
 				fi
 				sed -i '/iptables -t nat -A POSTROUTING -s 1.8.0.0\/24 -j SNAT --to /d' $RCLOCAL
 				fi
 				if [[ "$OS" = 'debian' ]]; then
-					apt-get remove --purge -y openvpn openvpn-blacklist
+					apt-get remove --purge -y openvpn openvpn-blacklist bind9 bind9utils bind9-doc
 				else
 					yum remove openvpn -y
 				fi
@@ -354,9 +354,23 @@ else
       break ;;
       esac
       done
-      
+     while :
+     do
+      clear
+         echo "Do you want to create self hosted DNS resolver ?"
+         echo "This resolver will be only accessible through VPN to prevent"
+         echo "your server to be used for DNS amplification attack"
+           read -p "Create DNS resolver [y/n]: " -e -i n DNSRESOLVER
+           case $DNSRESOLVER in
+            y) DNSRESOLVER=1
+              break;;
+            n) DNSRESOLVER=0
+              break;;
+            esac
+     done
       
 	echo ""
+	if [ "$DNSRESOLVER" = 0 ]; then    #If user wants to use his own DNS resolver this selection is skipped
 	echo "What DNS do you want to use with the VPN?"
 	echo "   1) Current system resolvers"
 	echo "   2) OpenDNS"
@@ -365,6 +379,25 @@ else
 	echo "   5) Hurricane Electric"
 	echo "   6) Google"
 	read -p "DNS [1-6]: " -e -i 1 DNS
+    fi
+       if [ "$DNSRESOLVER" = 1 ]; then
+        DNS=7
+        #Installation of BIND9 caching DNS resolver
+           sudo apt-get install bind9 bind9utils bind9-doc -y
+           if [ "$UDP" = 1 ]; then
+            sed -i '/listen-on-v6/a \
+                    listen-on { 10.8.0.1;};' /etc/bind/named.conf.options
+           fi
+           
+           if [ "$TCP" = 1 ]; then 
+             sed -i '/listen-on-v6/a \
+                    listen-on { 1.8.0.1;};' /etc/bind/named.conf.options
+           fi
+           
+         sed -i '/listen-on-v6/a \
+         allow-recursion { 0.0.0.0/0; };' /etc/bind/named.conf.options  #We will permit recursion from any IP(0.0.0.0/0) because our DNS resolver is listening only on our VPN network so it is not a security issue
+           
+       fi
 	echo ""
 	echo "Finally, tell me your name for the client cert"
 	echo "Please, use one word only, no special characters"
@@ -453,6 +486,8 @@ ifconfig-pool-persist ipp.txt" > /etc/openvpn/udp.conf
 		echo 'push "dhcp-option DNS 8.8.8.8"' >> /etc/openvpn/udp.conf
 		echo 'push "dhcp-option DNS 8.8.4.4"' >> /etc/openvpn/udp.conf
 		;;
+		7)
+		echo 'push "dhcp-option DNS 10.8.0.1"' >> /etc/openvpn/udp.conf
 	esac
 	echo "keepalive 10 120
 comp-lzo
@@ -513,6 +548,8 @@ rcvbuf 0" > /etc/openvpn/tcp.conf
 		echo 'push "dhcp-option DNS 8.8.8.8"' >> /etc/openvpn/tcp.conf
 		echo 'push "dhcp-option DNS 8.8.4.4"' >> /etc/openvpn/tcp.conf
 		;;
+		7)
+		echo 'push "dhcp-option DNS 1.8.0.1"' >> /etc/openvpn/udp.conf
 	esac
 	echo "keepalive 10 120
 comp-lzo
@@ -543,7 +580,7 @@ fi
 	# Set NAT for the VPN subnet
 	   if [ "$INTERNALNETWORK" = 1 ]; then
 	    if [ "$UDP" = 1 ]; then
-	iptables -t nat -A POSTROUTING -s 10.8.0.0/24 ! -d 10.8.0.0/24 -j SNAT --to $IP
+	iptables -t nat -A POSTROUTING -s 10.8.0.0/24 ! -d 10.8.0.0/24 -j SNAT --to $IP     
 		sed -i "1 a\iptables -t nat -A POSTROUTING -s 10.8.0.0/24 ! -d 10.8.0.0/24 -j SNAT --to $IP" $RCLOCAL
 	    fi
 		if [ "$TCP" = 1 ]; then
@@ -552,11 +589,11 @@ fi
 	    fi
 	   else
 	   if [ "$UDP" = 1 ]; then
-	iptables -t nat -A POSTROUTING -s 10.8.0.0/24 -j SNAT --to $IP
+	iptables -t nat -A POSTROUTING -s 10.8.0.0/24 ! -d 10.8.0.1 -j SNAT --to $IP
 	sed -i "1 a\iptables -t nat -A POSTROUTING -s 10.8.0.0/24 -j SNAT --to $IP" $RCLOCAL
 	    fi
 		if [ "$TCP" = 1 ]; then
-	iptables -t nat -A POSTROUTING -s 1.8.0.0/24 -j SNAT --to $IP #This line and the next one are added for tcp server instance
+	iptables -t nat -A POSTROUTING -s 1.8.0.0/24  ! -d 1.8.0.1 -j SNAT --to $IP #This line and the next one are added for tcp server instance
 	sed -i "1 a\iptables -t nat -A POSTROUTING -s 1.8.0.0/24 -j SNAT --to $IP" $RCLOCAL
 	    fi
 	   fi
@@ -738,3 +775,5 @@ newclienttcp "$CLIENT"
 	fi
 	echo "If you want to add more clients, you simply need to run this script another time!"
 fi
+sudo service bind9 restart
+
