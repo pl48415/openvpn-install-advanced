@@ -52,10 +52,10 @@ newclient () {
         echo "</key>" >> ~/$1.ovpn
         if [ "$TLS" = "1" ]; then  #check if TLS is selected to add a TLS static key
 		echo "key-direction 1" >> ~/$1.ovpn
-        echo "<tls-auth>" >> ~/$1.ovpn
-        cat /etc/openvpn/easy-rsa/pki/private/ta.key >> ~/$1.ovpn
-        echo "</tls-auth>" >> ~/$1.ovpn
-		fi
+                echo "<tls-auth>" >> ~/$1.ovpn
+                cat /etc/openvpn/easy-rsa/pki/private/ta.key >> ~/$1.ovpn
+                echo "</tls-auth>" >> ~/$1.ovpn
+	fi
         
 }
 
@@ -73,10 +73,11 @@ newclienttcp () {
 	cat /etc/openvpn/easy-rsa/pki/private/$1.key >> ~/$1tcp.ovpn
 	echo "</key>" >> ~/$1tcp.ovpn
 	if [ "$TLS" = "1" ]; then  #check if TLS is selected to add a TLS static key
-	echo "key-direction 1" >> ~/$1tcp.ovpn
-	echo "<tls-auth>" >> ~/$1tcp.ovpn
-	cat /etc/openvpn/easy-rsa/pki/private/ta.key >> ~/$1tcp.ovpn
-	echo "</tls-auth>" >> ~/$1tcp.ovpn
+	        echo "key-direction 1" >> ~/$1tcp.ovpn
+	        echo "<tls-auth>" >> ~/$1tcp.ovpn
+	        cat /etc/openvpn/easy-rsa/pki/private/ta.key >> ~/$1tcp.ovpn
+	        echo "</tls-auth>" >> ~/$1tcp.ovpn
+	
 	fi
 	
 }
@@ -113,27 +114,27 @@ if [ -e /etc/openvpn/udp.conf -o -e /etc/openvpn/tcp.conf ]; then    #check if u
 			./easyrsa build-client-full $CLIENT nopass
 			# Generates the custom client.ovpn
 			if [[ -e /etc/openvpn/udp.conf ]]; then
-			TLS=0
+			        TLS=0
 			if [ -n "$(cat /etc/openvpn/udp.conf | grep tls-auth)" ]; then #check if TLS is enabled in server config file so that static TLS key can be added to new client
-			TLS=1 
+			        TLS=1 
 			fi 
 			newclient "$CLIENT"
 			#everything here is the same as above just for the tcp client
 			fi
 			if [[ -e /etc/openvpn/tcp.conf ]]; then
-			TLS=0
+			        TLS=0
 			if [ -n "$(cat /etc/openvpn/tcp.conf | grep tls-auth)" ]; then
-			TLS=1
+			        TLS=1
 			fi 
-			newclienttcp "$CLIENT"
+			        newclienttcp "$CLIENT"
 			fi
 			
 			echo ""
 			if [ "$UDP" = 1 ]; then
-			echo "UDP client $CLIENT added, certs available at ~/$CLIENT.ovpn"
+			        echo "UDP client $CLIENT added, certs available at ~/$CLIENT.ovpn"
 			fi
 			if [ "$TCP" = 1 ]; then
-			echo "TCP client $CLIENT added, certs available at ~/$CLIENTtcp.ovpn"
+			        echo "TCP client $CLIENT added, certs available at ~/$CLIENTtcp.ovpn"
 			fi
 			exit
 			;;
@@ -248,7 +249,7 @@ else
 	echo "Do you want UDP server?"
 	read -p "y or n " -e -i y UDP
         case $UDP in
-	       y)	UDP=1
+	       y)   UDP=1
 	    break ;;
 	       n)   UDP=0
 	     break ;;
@@ -261,7 +262,7 @@ else
 	echo "Do you want TCP server?"
 	read -p "y or n " -e -i y TCP
         case $TCP in
-	       y)	TCP=1
+	       y)   TCP=1
 	    break ;;
 	       n)   TCP=0
 	     break ;;
