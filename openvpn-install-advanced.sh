@@ -451,6 +451,7 @@ ca ca.crt
 cert server.crt
 key server.key
 dh dh.pem
+push "register-dns"
 topology subnet
 server 10.8.0.0 255.255.255.0
 cipher $CIPHER
@@ -509,6 +510,7 @@ ca ca.crt
 cert server.crt
 key server.key
 dh dh.pem
+push "register-dns"
 topology subnet
 server 1.8.0.0 255.255.255.0
 ifconfig-pool-persist ipp.txt
