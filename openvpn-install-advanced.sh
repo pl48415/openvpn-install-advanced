@@ -555,7 +555,7 @@ rcvbuf 0" > /etc/openvpn/tcp.conf
 		echo 'push "dhcp-option DNS 8.8.4.4"' >> /etc/openvpn/tcp.conf
 		;;
 		7)
-		echo 'push "dhcp-option DNS 1.8.0.1"' >> /etc/openvpn/udp.conf
+		echo 'push "dhcp-option DNS 1.8.0.1"' >> /etc/openvpn/tcp.conf
 	esac
 	echo "keepalive 10 120
 comp-lzo
