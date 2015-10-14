@@ -381,7 +381,19 @@ else
 	echo "   6) Google"
 	read -p "DNS [1-6]: " -e -i 1 DNS
     fi
-       if [ "$DNSRESOLVER" = 1 ]; then
+       
+	echo ""
+	echo "Finally, tell me your name for the client cert"
+	echo "Please, use one word only, no special characters"
+	read -p "Client name: " -e -i client CLIENT
+	echo ""
+	echo "Okay, that was all I needed. We are ready to setup your OpenVPN server now"
+	read -n1 -r -p "Press any key to continue..."
+		if [[ "$OS" = 'debian' ]]; then
+		apt-get update
+		apt-get install openvpn iptables openssl -y
+		
+		if [ "$DNSRESOLVER" = 1 ]; then
         DNS=7
         #Installation of BIND9 caching DNS resolver
            sudo apt-get install bind9 bind9utils bind9-doc -y
@@ -399,16 +411,7 @@ else
          allow-recursion { 0.0.0.0/0; };' /etc/bind/named.conf.options  #We will permit recursion from any IP(0.0.0.0/0) because our DNS resolver is listening only on our VPN network so it is not a security issue
            
        fi
-	echo ""
-	echo "Finally, tell me your name for the client cert"
-	echo "Please, use one word only, no special characters"
-	read -p "Client name: " -e -i client CLIENT
-	echo ""
-	echo "Okay, that was all I needed. We are ready to setup your OpenVPN server now"
-	read -n1 -r -p "Press any key to continue..."
-		if [[ "$OS" = 'debian' ]]; then
-		apt-get update
-		apt-get install openvpn iptables openssl -y
+       
 	else
 		# Else, the distro is CentOS
 		yum install epel-release -y
