@@ -212,7 +212,7 @@ if [ -e /etc/openvpn/udp.conf -o -e /etc/openvpn/tcp.conf ]; then    #check if u
 				sed -i '/iptables -t nat -A POSTROUTING -s 1.8.0.0\/24 -j SNAT --to /d' $RCLOCAL
 				fi
 				if [[ "$OS" = 'debian' ]]; then
-					apt-get remove --purge -y openvpn openvpn-blacklist bind9 bind9utils bind9-doc
+			         apt-get remove --purge -y openvpn openvpn-blacklist bind9 bind9utils bind9-doc clamav clamav-daemon privoxy havp
 				else
 					yum remove openvpn -y
 				fi
