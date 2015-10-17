@@ -369,7 +369,24 @@ else
               break;;
             esac
      done
-      
+     
+     while :
+     do
+       clear
+        echo "Do you want to setup Privoxy+ClamAV+HAVP?"
+        echo "Privoxy will be used to block ads."
+        echo "ClamAV+HAVP will be used to scan all of your web traffic for viruses."
+        echo "This will only work with unencrypted traffic."
+        echo "You should have at least 1GB RAM for this option."
+        read -p "[y/n]: " -e -i n ANTIVIR
+        case $ANTIVIR in
+        y) ANTIVIR=1
+           break;;
+        n) ANTIVIR=0
+           break;;
+        esac
+      done
+        
 	echo ""
 	if [ "$DNSRESOLVER" = 0 ]; then    #If user wants to use his own DNS resolver this selection is skipped
 	echo "What DNS do you want to use with the VPN?"
@@ -411,7 +428,34 @@ else
          allow-recursion { 0.0.0.0/0; };' /etc/bind/named.conf.options  #We will permit recursion from any IP(0.0.0.0/0) because our DNS resolver is listening only on our VPN network so it is not a security issue
            
        fi
-       
+ if [ "$ANTIVIR" = 1 ]; then 
+             apt-get install clamav clamav-daemon -y
+ service clamav-freshclam stop
+ freshclam
+ service clamav-freshclam start
+ sed -i "s/AllowSupplementaryGroups false/AllowSupplementaryGroups true/" /etc/clamav/clamd.conf
+ service clamav-daemon restart
+ apt-get install havp -y
+sed -i '/ENABLECLAMLIB true/c\ENABLECLAMLIB false'  /etc/havp/havp.config
+sed -i '/ENABLECLAMD false/c\ENABLECLAMD true'  /etc/havp/havp.config
+sed -i '/RANGE false/c\RANGE true'  /etc/havp/havp.config
+sed -i '/SCANIMAGES true/c\ENABLECLAMD false'  /etc/havp/havp.config
+sed -i 's/\# SKIPMIME/SKIPMIME/'  /etc/havp/havp.config
+sed -i '/\LOG_OKS true/c\LOG_OKS false'  /etc/havp/havp.config
+ gpasswd -a clamav havp
+ service clamav-daemon restart
+ service havp restart
+ apt-get install privoxy -y
+sed -i '/listen-address  localhost:8118/c\listen-address  127.0.0.1:8118' /etc/privoxy/config
+HOST=$(hostname -f)
+sed -i "/hostname hostname.example.org/c\hostname "$HOST""  /etc/privoxy/config
+ service privoxy restart
+sed -i '/PARENTPROXY localhost/c\PARENTPROXY 127.0.0.1'  /etc/havp/havp.config
+sed -i '/PARENTPORT 3128/c\PARENTPORT 8118'  /etc/havp/havp.config
+sed -i '/TRANSPARENT false/c\TRANSPARENT true'  /etc/havp/havp.config
+ service havp restart
+iptables -t nat -A PREROUTING -i tun+ -p tcp --dport 80 -j REDIRECT --to-port 8080
+ fi
 	else
 		# Else, the distro is CentOS
 		yum install epel-release -y
