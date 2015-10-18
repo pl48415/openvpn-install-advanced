@@ -160,16 +160,12 @@ if [ -e /etc/openvpn/udp.conf -o -e /etc/openvpn/tcp.conf ]; then    #check if u
 			./easyrsa --batch revoke $CLIENT
 			./easyrsa gen-crl
 			# And restart
-			if pgrep systemd-journal; then
+				if [[ -e /etc/openvpn/udp.conf ]]; then
 				sudo systemctl restart udp.service
-                                sudo systemctl restart tcp.service
-			else
-				if [[ "$OS" = 'debian' ]]; then
-					/etc/init.d/openvpn restart
-				else
-					service openvpn restart
 				fi
-			fi
+                if [[ -e /etc/openvpn/tcp.conf ]]; then
+                sudo systemctl restart tcp.service
+                fi			
 			echo ""
 			echo "Certificate for client $CLIENT revoked"
 			exit
@@ -180,49 +176,32 @@ if [ -e /etc/openvpn/udp.conf -o -e /etc/openvpn/tcp.conf ]; then    #check if u
 			if [[ "$REMOVE" = 'y' ]]; then
 			if [[ -e /etc/openvpn/udp.conf ]]; then  #removal of udp firewall rules
 				PORT=$(grep '^port ' /etc/openvpn/udp.conf | cut -d " " -f 2)
-				if pgrep firewalld; then
-					# Using both permanent and not permanent rules to avoid a firewalld reload.
-					firewall-cmd --zone=public --remove-port=$PORT/udp
-					firewall-cmd --zone=trusted --remove-source=10.8.0.0/24
-					firewall-cmd --permanent --zone=public --remove-port=$PORT/udp
-					firewall-cmd --permanent --zone=trusted --remove-source=10.8.0.0/24
-				fi
-				if iptables -L | grep -q REJECT; then
+				    iptables -L | grep -q REJECT
 					sed -i "/iptables -I INPUT -p udp --dport $PORT -j ACCEPT/d" $RCLOCAL
 					sed -i "/iptables -I FORWARD -s 10.8.0.0\/24 -j ACCEPT/d" $RCLOCAL
 					sed -i "/iptables -I FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT/d" $RCLOCAL
-				fi
+				
 				sed -i '/iptables -t nat -A POSTROUTING -s 10.8.0.0\/24 -j SNAT --to /d' $RCLOCAL
 				fi
 				
 				if [[ -e /etc/openvpn/tcp.conf ]]; then #removal of tcp firewall rules
 				PORT=$(grep '^port ' /etc/openvpn/tcp.conf | cut -d " " -f 2)
-				if pgrep firewalld; then
-					# Using both permanent and not permanent rules to avoid a firewalld reload.
-					firewall-cmd --zone=public --remove-port=$PORT/tcp
-					firewall-cmd --zone=trusted --remove-source=1.8.0.0/24
-					firewall-cmd --permanent --zone=public --remove-port=$PORT/tcp
-					firewall-cmd --permanent --zone=trusted --remove-source=1.8.0.0/24
-				fi
-				if iptables -L | grep -q REJECT; then
+				
+				iptables -L | grep -q REJECT
 					sed -i "/iptables -I INPUT -p tcp --dport $PORT -j ACCEPT/d" $RCLOCAL
 					sed -i "/iptables -I FORWARD -s 1.8.0.0\/24 -j ACCEPT/d" $RCLOCAL
 					sed -i "/iptables -I FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT/d" $RCLOCAL
-				fi
+				
 				sed -i '/iptables -t nat -A POSTROUTING -s 1.8.0.0\/24 -j SNAT --to /d' $RCLOCAL
 				fi
-				if [[ "$OS" = 'debian' ]]; then
-			         apt-get remove --purge -y openvpn openvpn-blacklist bind9 bind9utils bind9-doc clamav clamav-daemon privoxy havp
-				else
-					yum remove openvpn -y
-				fi
+				apt-get remove --purge -y openvpn openvpn-blacklist bind9 bind9utils bind9-doc clamav clamav-daemon privoxy havp
+				
 				rm -rf /etc/openvpn
 				rm -rf /usr/share/doc/openvpn*
 				echo ""
 				echo "OpenVPN removed!"
-			else
-				echo ""
-				echo "Removal aborted!"
+			
+				
 			fi
 			exit
 			;;
@@ -457,9 +436,7 @@ sed -i '/TRANSPARENT false/c\TRANSPARENT true'  /etc/havp/havp.config
 iptables -t nat -A PREROUTING -i tun+ -p tcp --dport 80 -j REDIRECT --to-port 8080
  fi
 	else
-		# Else, the distro is CentOS
-		yum install epel-release -y
-		yum install openvpn iptables openssl wget -y
+		echo "Only Debian-based distros supported currently"
 	fi
 	# An old version of easy-rsa was available by default in some openvpn packages
 	if [[ -d /etc/openvpn/easy-rsa/ ]]; then
@@ -615,16 +592,8 @@ fi
 
 
 	# Enable net.ipv4.ip_forward for the system
-	if [[ "$OS" = 'debian' ]]; then
-		sed -i 's|#net.ipv4.ip_forward=1|net.ipv4.ip_forward=1|' /etc/sysctl.conf
-	else
-		# CentOS 5 and 6
-		sed -i 's|net.ipv4.ip_forward = 0|net.ipv4.ip_forward = 1|' /etc/sysctl.conf
-		# CentOS 7
-		if ! grep -q "net.ipv4.ip_forward=1" "/etc/sysctl.conf"; then
-			echo 'net.ipv4.ip_forward=1' >> /etc/sysctl.conf
-		fi
-	fi
+	sed -i 's|#net.ipv4.ip_forward=1|net.ipv4.ip_forward=1|' /etc/sysctl.conf
+	
 	# Avoid an unneeded reboot
 	echo 1 > /proc/sys/net/ipv4/ip_forward
 	# Set NAT for the VPN subnet
@@ -647,23 +616,7 @@ fi
 	sed -i "1 a\iptables -t nat -A POSTROUTING -s 1.8.0.0/24 -j SNAT --to $IP" $RCLOCAL
 	    fi
 	   fi
-	if pgrep firewalld; then
-		# We don't use --add-service=openvpn because that would only work with
-		# the default port. Using both permanent and not permanent rules to
-		# avoid a firewalld reload.
-		if [ "$UDP" = 1 ]; then
-		firewall-cmd --zone=public --add-port=$PORT/udp
-		firewall-cmd --zone=trusted --add-source=10.8.0.0/24
-		firewall-cmd --permanent --zone=public --add-port=$PORT/udp
-		firewall-cmd --permanent --zone=trusted --add-source=10.8.0.0/24
-		fi
-		if [ "$TCP" = 1 ]; then
-		firewall-cmd --zone=public --add-port=$PORTTCP/tcp  #This line and next 3 lines have been added for tcp support
-		firewall-cmd --zone=trusted --add-source=1.8.0.0/24
-		firewall-cmd --permanent --zone=public --add-port=$PORTTCP/tcp
-		firewall-cmd --permanent --zone=trusted --add-source=1.8.0.0/24
-		fi
-	fi
+	
 	if iptables -L | grep -q REJECT; then
 		# If iptables has at least one REJECT rule, we asume this is needed.
 		# Not the best approach but I can't think of other and this shouldn't
@@ -686,9 +639,7 @@ fi
 		fi
 	fi
 	# And finally, restart OpenVPN
-	if [[ "$OS" = 'debian' ]]; then
-		if pgrep systemd-journal; then #this trick is explained here: https://ask.fedoraproject.org/en/question/23085/how-to-start-openvpn-service-at-boot-time/  , thanks to Cerin
-			if [ "$UDP" = 1 ]; then
+	      if [ "$UDP" = 1 ]; then
 			echo "[Unit]
 Description=OpenVPN Robust And Highly Flexible Tunneling Application On <server>
 After=syslog.target network.target
@@ -719,48 +670,7 @@ WantedBy=multi-user.target" > /etc/systemd/system/tcp.service
 sudo systemctl enable tcp.service
 sudo systemctl start tcp.service
 			fi
-			#systemctl restart openvpn@server.service
-		else
-			/etc/init.d/openvpn restart
-		fi
-	else
-		if pgrep systemd-journal; then
-			if [ "$UDP" = 1 ]; then
-			echo "[Unit]
-Description=OpenVPN Robust And Highly Flexible Tunneling Application On <server>
-After=syslog.target network.target
 
-[Service]
-Type=forking
-PIDFile=/var/run/openvpn/udp.pid
-ExecStart=/usr/sbin/openvpn --daemon --writepid /var/run/openvpn/udp.pid --cd /etc/openvpn/ --config udp.conf
-
-[Install]
-WantedBy=multi-user.target" > /etc/systemd/system/udp.service
-           sudo systemctl enable udp.service
-		   sudo systemctl start udp.service
-		   fi
-		   
-		   if [ "$TCP" = 1 ]; then
-echo "[Unit]
-Description=OpenVPN Robust And Highly Flexible Tunneling Application On <server>
-After=syslog.target network.target
-
-[Service]
-Type=forking
-PIDFile=/var/run/openvpn/tcp.pid
-ExecStart=/usr/sbin/openvpn --daemon --writepid /var/run/openvpn/tcp.pid --cd /etc/openvpn/ --config tcp.conf
-
-[Install]
-WantedBy=multi-user.target" > /etc/systemd/system/tcp.service
-sudo systemctl enable tcp.service
-sudo systemctl start tcp.service
-			fi
-		else
-			service openvpn restart
-			chkconfig openvpn on
-		fi
-	fi
 	# Try to detect a NATed connection and ask about it to potential LowEndSpirit users
 	EXTERNALIP=$(wget -qO- ipv4.icanhazip.com)
 	if [[ "$IP" != "$EXTERNALIP" ]]; then
