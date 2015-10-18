@@ -24,5 +24,10 @@ You can create personal DNS resolver that is accessible only through vpn so you 
 
 Using TCP server with port 443 can bypass some network firewalls that block OpenVPN traffic.
 
+Added an option to force all unencrypted traffic go through privoxy+HAVP+ClamAV.
+Privoxy is used for increased privacy and ad blocking. After privoxy all traffic goes to
+HAVP and is scanned with ClamAV. It is recommended to use system with at least 1GB of ram for these features.
+
 # Installation
 `wget git.io/vcIGP --no-check-certificate -O openvpn-install-advanced.sh; bash openvpn-install-advanced.sh`
+This script has been tested on Debian 8 and should also work on Ubuntu.
