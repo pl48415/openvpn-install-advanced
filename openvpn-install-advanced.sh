@@ -671,13 +671,13 @@ sudo systemctl enable tcp.service
 sudo systemctl start tcp.service
 			fi
 
-	# Try to detect a NATed connection and ask about it to potential LowEndSpirit users
+	# Try to detect a NATed connection and ask about it to potential LowEndSpirit or Scaleway users
 	EXTERNALIP=$(wget -qO- ipv4.icanhazip.com)
 	if [[ "$IP" != "$EXTERNALIP" ]]; then
 		echo ""
 		echo "Looks like your server is behind a NAT!"
 		echo ""
-		echo "If your server is NATed (LowEndSpirit), I need to know the external IP"
+		echo "If your server is NATed (LowEndSpirit or Scaleway), I need to know the external IP"
 		echo "If that's not the case, just ignore this and leave the next field blank"
 		read -p "External IP: " -e USEREXTERNALIP
 		if [[ "$USEREXTERNALIP" != "" ]]; then
