@@ -735,5 +735,6 @@ newclienttcp "$CLIENT"
 	fi
 	echo "If you want to add more clients, you simply need to run this script another time!"
 fi
+if [ "$DNSRESOLVER" = 1 ]; then 
 sudo service bind9 restart
-
+fi
