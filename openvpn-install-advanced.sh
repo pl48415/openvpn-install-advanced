@@ -432,6 +432,7 @@ sed -i "/hostname hostname.example.org/c\hostname "$HOST""  /etc/privoxy/config
 sed -i '/PARENTPROXY localhost/c\PARENTPROXY 127.0.0.1'  /etc/havp/havp.config
 sed -i '/PARENTPORT 3128/c\PARENTPORT 8118'  /etc/havp/havp.config
 sed -i '/TRANSPARENT false/c\TRANSPARENT true'  /etc/havp/havp.config
+sed -i "3 a\iptables -t nat -A PREROUTING -p tcp -i tun+ --dport 80 -j REDIRECT --to-port 8080" /etc/rc.local  #Add this firewall rule to startup(redirect traffic on port 80 to privoxy) 
  service havp restart
 iptables -t nat -A PREROUTING -i tun+ -p tcp --dport 80 -j REDIRECT --to-port 8080
  fi
