@@ -111,28 +111,25 @@ if [ -e /etc/openvpn/udp.conf -o -e /etc/openvpn/tcp.conf ]; then    #check if u
 			./easyrsa build-client-full "$CLIENT" nopass
 			# Generates the custom client.ovpn
 			if [[ -e /etc/openvpn/udp.conf ]]; then
-			        TLS=0
-			if [ -n "$(cat /etc/openvpn/udp.conf | grep tls-auth)" ]; then #check if TLS is enabled in server config file so that static TLS key can be added to new client
-			        TLS=1 
-			fi 
-			newclient "$CLIENT"
-			#everything here is the same as above just for the tcp client
+				TLS=0
+				if [ -n "$(cat /etc/openvpn/udp.conf | grep tls-auth)" ]; then #check if TLS is enabled in server config file so that static TLS key can be added to new client
+					TLS=1 
+				fi
+				newclient "$CLIENT"
+				echo "UDP client $CLIENT added, certs available at ~/$CLIENT.ovpn"
 			fi
+			
+			#everything here is the same as above just for the tcp client
 			if [[ -e /etc/openvpn/tcp.conf ]]; then
-			        TLS=0
-			if [ -n "$(cat /etc/openvpn/tcp.conf | grep tls-auth)" ]; then
-			        TLS=1
-			fi 
-			        newclienttcp "$CLIENT"
+				TLS=0
+				if [ -n "$(cat /etc/openvpn/tcp.conf | grep tls-auth)" ]; then
+					TLS=1
+				fi
+				newclienttcp "$CLIENT"
+				echo "TCP client $CLIENT added, certs available at ~/${CLIENT}tcp.ovpn"
 			fi
 			
 			echo ""
-			if [ "$UDP" = 1 ]; then
-			        echo "UDP client $CLIENT added, certs available at ~/$CLIENT.ovpn"
-			fi
-			if [ "$TCP" = 1 ]; then
-			        echo "TCP client $CLIENT added, certs available at ~/$CLIENTtcp.ovpn"
-			fi
 			exit
 			;;
 			2)
@@ -730,7 +727,7 @@ newclienttcp "$CLIENT"
 	echo "Your UDP client config is available at ~/$CLIENT.ovpn"
 	fi
 	if [ "$TCP" = 1 ]; then
-	echo "Your TCP client config is available at ~/$CLIENTtcp.ovpn"
+	echo "Your TCP client config is available at ~/${CLIENT}tcp.ovpn"
 	fi
 	echo "If you want to add more clients, you simply need to run this script another time!"
 fi
