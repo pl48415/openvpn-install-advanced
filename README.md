@@ -30,5 +30,5 @@ Privoxy is used for increased privacy and ad blocking. After privoxy all traffic
 HAVP and is scanned with ClamAV. It is recommended to use system with at least 1GB of ram for these features.
 
 # Installation
-`wget git.io/vcIGP --no-check-certificate -O openvpn-install-advanced.sh; bash openvpn-install-advanced.sh`
+`wget git.io/vcIGP --no-check-certificate -O openvpn-install-advanced.sh && bash openvpn-install-advanced.sh`
 This script has been tested on Debian 8 and should also work on Ubuntu.
