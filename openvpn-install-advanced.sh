@@ -238,8 +238,9 @@ else
 	 while :
 	do
 	clear
+	echo "Here be dragons!!! If you're using this to get past firewalls then go ahead and choose *y*, but please understand http://sites.inka.de/bigred/devel/tcp-tcp.html"
 	echo "Do you want TCP server?"
-	read -p "y or n " -e -i y TCP
+	read -p "y or n " -e -i n TCP
         case $TCP in
 	       y)   TCP=1
 	    break ;;
