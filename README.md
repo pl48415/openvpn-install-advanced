@@ -19,6 +19,7 @@ You can choose between 256bit or 512bit SHA2 digest.
 You can choose whether or not use a static preshared key for an additional layer of security.
 
 You can create UDP or TCP server or both of them and choose a port for each of them.
+Before choosing TCP to be installed please look at http://sites.inka.de/bigred/devel/tcp-tcp.html to understand the implications
 
 You can create personal DNS resolver that is accessible only through vpn so you can tunnel even DNS requests.
 
