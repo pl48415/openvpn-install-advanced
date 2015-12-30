@@ -39,47 +39,44 @@ else
 fi
 
 newclient () {
-        # This function is used to create udp client .ovpn file
-        cp /etc/openvpn/client-common.txt ~/$1.ovpn
-        echo "<ca>" >> ~/$1.ovpn
-        cat /etc/openvpn/easy-rsa/pki/ca.crt >> ~/$1.ovpn
-        echo "</ca>" >> ~/$1.ovpn
-        echo "<cert>" >> ~/$1.ovpn
-        cat /etc/openvpn/easy-rsa/pki/issued/$1.crt >> ~/$1.ovpn
-        echo "</cert>" >> ~/$1.ovpn
-        echo "<key>" >> ~/$1.ovpn
-        cat /etc/openvpn/easy-rsa/pki/private/$1.key >> ~/$1.ovpn
-        echo "</key>" >> ~/$1.ovpn
-        if [ "$TLS" = "1" ]; then  #check if TLS is selected to add a TLS static key
-		echo "key-direction 1" >> ~/$1.ovpn
-                echo "<tls-auth>" >> ~/$1.ovpn
-                cat /etc/openvpn/easy-rsa/pki/private/ta.key >> ~/$1.ovpn
-                echo "</tls-auth>" >> ~/$1.ovpn
+	# This function is used to create udp client .ovpn file
+	cp /etc/openvpn/client-common.txt ~/"$1.ovpn"
+	echo "<ca>" >> ~/"$1.ovpn"
+	cat /etc/openvpn/easy-rsa/pki/ca.crt >> ~/"$1.ovpn"
+	echo "</ca>" >> ~/"$1.ovpn"
+	echo "<cert>" >> ~/"$1.ovpn"
+	cat /etc/openvpn/easy-rsa/pki/issued/"$1.crt" >> ~/"$1.ovpn"
+	echo "</cert>" >> ~/"$1.ovpn"
+	echo "<key>" >> ~/"$1.ovpn"
+	cat /etc/openvpn/easy-rsa/pki/private/"$1.key" >> ~/"$1.ovpn"
+	echo "</key>" >> ~/"$1.ovpn"
+	if [ "$TLS" = "1" ]; then  #check if TLS is selected to add a TLS static key
+		echo "key-direction 1" >> ~/"$1.ovpn"
+		echo "<tls-auth>" >> ~/"$1.ovpn"
+		cat /etc/openvpn/easy-rsa/pki/private/ta.key >> ~/"$1.ovpn"
+		echo "</tls-auth>" >> ~/"$1.ovpn"
 	fi
-        
 }
 
 
 newclienttcp () {
 	# This function is used to create tcp client .ovpn file
-	cp /etc/openvpn/clienttcp-common.txt ~/$1tcp.ovpn
-	echo "<ca>" >> ~/$1tcp.ovpn
-	cat /etc/openvpn/easy-rsa/pki/ca.crt >> ~/$1tcp.ovpn
-	echo "</ca>" >> ~/$1tcp.ovpn
-	echo "<cert>" >> ~/$1tcp.ovpn
-	cat /etc/openvpn/easy-rsa/pki/issued/$1.crt >> ~/$1tcp.ovpn
-	echo "</cert>" >> ~/$1tcp.ovpn
-	echo "<key>" >> ~/$1tcp.ovpn
-	cat /etc/openvpn/easy-rsa/pki/private/$1.key >> ~/$1tcp.ovpn
-	echo "</key>" >> ~/$1tcp.ovpn
+	cp /etc/openvpn/clienttcp-common.txt ~/"$1tcp.ovpn"
+	echo "<ca>" >> ~/"$1tcp.ovpn"
+	cat /etc/openvpn/easy-rsa/pki/ca.crt >> ~/"$1tcp.ovpn"
+	echo "</ca>" >> ~/"$1tcp.ovpn"
+	echo "<cert>" >> ~/"$1tcp.ovpn"
+	cat /etc/openvpn/easy-rsa/pki/issued/"$1.crt" >> ~/"$1tcp.ovpn"
+	echo "</cert>" >> ~/"$1tcp.ovpn"
+	echo "<key>" >> ~/"$1tcp.ovpn"
+	cat /etc/openvpn/easy-rsa/pki/private/"$1.key" >> ~/"$1tcp.ovpn"
+	echo "</key>" >> ~/"$1tcp.ovpn"
 	if [ "$TLS" = "1" ]; then  #check if TLS is selected to add a TLS static key
-	        echo "key-direction 1" >> ~/$1tcp.ovpn
-	        echo "<tls-auth>" >> ~/$1tcp.ovpn
-	        cat /etc/openvpn/easy-rsa/pki/private/ta.key >> ~/$1tcp.ovpn
-	        echo "</tls-auth>" >> ~/$1tcp.ovpn
-	
+		echo "key-direction 1" >> ~/"$1tcp.ovpn"
+		echo "<tls-auth>" >> ~/"$1tcp.ovpn"
+		cat /etc/openvpn/easy-rsa/pki/private/ta.key >> ~/"$1tcp.ovpn"
+		echo "</tls-auth>" >> ~/"$1tcp.ovpn"
 	fi
-	
 }
 
 
@@ -111,31 +108,28 @@ if [ -e /etc/openvpn/udp.conf -o -e /etc/openvpn/tcp.conf ]; then    #check if u
 			echo "Please, use one word only, no special characters"
 			read -p "Client name: " -e -i client CLIENT
 			cd /etc/openvpn/easy-rsa/
-			./easyrsa build-client-full $CLIENT nopass
+			./easyrsa build-client-full "$CLIENT" nopass
 			# Generates the custom client.ovpn
 			if [[ -e /etc/openvpn/udp.conf ]]; then
-			        TLS=0
-			if [ -n "$(cat /etc/openvpn/udp.conf | grep tls-auth)" ]; then #check if TLS is enabled in server config file so that static TLS key can be added to new client
-			        TLS=1 
-			fi 
-			newclient "$CLIENT"
-			#everything here is the same as above just for the tcp client
+				TLS=0
+				if [ -n "$(cat /etc/openvpn/udp.conf | grep tls-auth)" ]; then #check if TLS is enabled in server config file so that static TLS key can be added to new client
+					TLS=1 
+				fi
+				newclient "$CLIENT"
+				echo "UDP client $CLIENT added, certs available at ~/$CLIENT.ovpn"
 			fi
+			
+			#everything here is the same as above just for the tcp client
 			if [[ -e /etc/openvpn/tcp.conf ]]; then
-			        TLS=0
-			if [ -n "$(cat /etc/openvpn/tcp.conf | grep tls-auth)" ]; then
-			        TLS=1
-			fi 
-			        newclienttcp "$CLIENT"
+				TLS=0
+				if [ -n "$(cat /etc/openvpn/tcp.conf | grep tls-auth)" ]; then
+					TLS=1
+				fi
+				newclienttcp "$CLIENT"
+				echo "TCP client $CLIENT added, certs available at ~/${CLIENT}tcp.ovpn"
 			fi
 			
 			echo ""
-			if [ "$UDP" = 1 ]; then
-			        echo "UDP client $CLIENT added, certs available at ~/$CLIENT.ovpn"
-			fi
-			if [ "$TCP" = 1 ]; then
-			        echo "TCP client $CLIENT added, certs available at ~/$CLIENTtcp.ovpn"
-			fi
 			exit
 			;;
 			2)
@@ -157,7 +151,7 @@ if [ -e /etc/openvpn/udp.conf -o -e /etc/openvpn/tcp.conf ]; then    #check if u
 			fi
 			CLIENT=$(tail -n +2 /etc/openvpn/easy-rsa/pki/index.txt | grep "^V" | cut -d '=' -f 2 | sed -n "$CLIENTNUMBER"p)
 			cd /etc/openvpn/easy-rsa/
-			./easyrsa --batch revoke $CLIENT
+			./easyrsa --batch revoke "$CLIENT"
 			./easyrsa gen-crl
 			# And restart
 				if [[ -e /etc/openvpn/udp.conf ]]; then
@@ -167,7 +161,7 @@ if [ -e /etc/openvpn/udp.conf -o -e /etc/openvpn/tcp.conf ]; then    #check if u
                 sudo systemctl restart tcp.service
                 fi			
 			echo ""
-			echo "Certificate for client $CLIENT revoked"
+			echo "Certificate for client \"$CLIENT\" revoked"
 			exit
 			;;
 			3) 
@@ -457,7 +451,7 @@ iptables -t nat -A PREROUTING -i tun+ -p tcp --dport 80 -j REDIRECT --to-port 80
 	./easyrsa --batch build-ca nopass
 	./easyrsa gen-dh
 	./easyrsa build-server-full server nopass
-	./easyrsa build-client-full $CLIENT nopass
+	./easyrsa build-client-full "$CLIENT" nopass
 	./easyrsa gen-crl
    
 	openvpn --genkey --secret /etc/openvpn/easy-rsa/pki/private/ta.key    #generate TLS key for additional security
@@ -474,7 +468,7 @@ ca ca.crt
 cert server.crt
 key server.key
 dh dh.pem
-push "register-dns"
+push \"register-dns\"
 topology subnet
 server 10.8.0.0 255.255.255.0
 cipher $CIPHER
@@ -533,7 +527,7 @@ ca ca.crt
 cert server.crt
 key server.key
 dh dh.pem
-push "register-dns"
+push \"register-dns\"
 topology subnet
 server 10.9.0.0 255.255.255.0
 ifconfig-pool-persist ipp.txt
@@ -728,10 +722,10 @@ newclienttcp "$CLIENT"
 	echo "Finished!"
 	echo ""
 	if [ "$UDP" = 1 ]; then
-	echo Your UDP client config is available at ~/$CLIENT.ovpn
+	echo "Your UDP client config is available at ~/$CLIENT.ovpn"
 	fi
 	if [ "$TCP" = 1 ]; then
-	echo Your TCP client config is available at ~/$CLIENTtcp.ovpn
+	echo "Your TCP client config is available at ~/${CLIENT}tcp.ovpn"
 	fi
 	echo "If you want to add more clients, you simply need to run this script another time!"
 fi
