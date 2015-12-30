@@ -189,10 +189,9 @@ if [ -e /etc/openvpn/udp.conf -o -e /etc/openvpn/tcp.conf ]; then    #check if u
 				
 				iptables -L | grep -q REJECT
 					sed -i "/iptables -I INPUT -p tcp --dport $PORT -j ACCEPT/d" $RCLOCAL
-					sed -i "/iptables -I FORWARD -s 1.8.0.0\/24 -j ACCEPT/d" $RCLOCAL
+					sed -i "/iptables -I FORWARD -s 10.9.0.0\/24 -j ACCEPT/d" $RCLOCAL
 					sed -i "/iptables -I FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT/d" $RCLOCAL
-				
-				sed -i '/iptables -t nat -A POSTROUTING -s 1.8.0.0\/24 -j SNAT --to /d' $RCLOCAL
+					sed -i '/iptables -t nat -A POSTROUTING -s 10.9.0.0\/24 -j SNAT --to /d' $RCLOCAL
 				fi
 				apt-get remove --purge -y openvpn openvpn-blacklist bind9 bind9utils bind9-doc clamav clamav-daemon privoxy havp
 				
@@ -398,11 +397,10 @@ else
                     listen-on { 10.8.0.1;};' /etc/bind/named.conf.options
            fi
            
-           if [ "$TCP" = 1 ]; then 
-             sed -i '/listen-on-v6/a \
-                    listen-on { 1.8.0.1;};' /etc/bind/named.conf.options
-           fi
-           
+			if [ "$TCP" = 1 ]; then 
+			 sed -i '/listen-on-v6/a \
+					listen-on { 10.9.0.1;};' /etc/bind/named.conf.options
+			fi
          sed -i '/listen-on-v6/a \
          allow-recursion { 0.0.0.0/0; };' /etc/bind/named.conf.options  #We will permit recursion from any IP(0.0.0.0/0) because our DNS resolver is listening only on our VPN network so it is not a security issue
            
@@ -537,7 +535,7 @@ key server.key
 dh dh.pem
 push "register-dns"
 topology subnet
-server 1.8.0.0 255.255.255.0
+server 10.9.0.0 255.255.255.0
 ifconfig-pool-persist ipp.txt
 cipher $CIPHER
 auth $DIGEST
@@ -577,7 +575,7 @@ rcvbuf 0" > /etc/openvpn/tcp.conf
 		echo 'push "dhcp-option DNS 8.8.4.4"' >> /etc/openvpn/tcp.conf
 		;;
 		7)
-		echo 'push "dhcp-option DNS 1.8.0.1"' >> /etc/openvpn/tcp.conf
+		echo 'push "dhcp-option DNS 10.9.0.1"' >> /etc/openvpn/tcp.conf
 	esac
 	echo "keepalive 10 120
 comp-lzo
@@ -605,8 +603,8 @@ fi
 		sed -i "1 a\iptables -t nat -A POSTROUTING -s 10.8.0.0/24 ! -d 10.8.0.0/24 -j SNAT --to $IP" $RCLOCAL
 	    fi
 		if [ "$TCP" = 1 ]; then
-	iptables -t nat -A POSTROUTING -s 1.8.0.0/24 ! -d 1.8.0.0/24 -j SNAT --to $IP
-		sed -i "1 a\iptables -t nat -A POSTROUTING -s 1.8.0.0/24 ! -d 1.8.0.0/24 -j SNAT --to $IP" $RCLOCAL
+			iptables -t nat -A POSTROUTING -s 10.9.0.0/24 ! -d 10.9.0.0/24 -j SNAT --to $IP
+			sed -i "1 a\iptables -t nat -A POSTROUTING -s 10.9.0.0/24 ! -d 10.9.0.0/24 -j SNAT --to $IP" $RCLOCAL
 	    fi
 	   else
 	   if [ "$UDP" = 1 ]; then
@@ -614,9 +612,9 @@ fi
 	sed -i "1 a\iptables -t nat -A POSTROUTING -s 10.8.0.0/24 -j SNAT --to $IP" $RCLOCAL
 	    fi
 		if [ "$TCP" = 1 ]; then
-	iptables -t nat -A POSTROUTING -s 1.8.0.0/24  ! -d 1.8.0.1 -j SNAT --to $IP #This line and the next one are added for tcp server instance
-	sed -i "1 a\iptables -t nat -A POSTROUTING -s 1.8.0.0/24 -j SNAT --to $IP" $RCLOCAL
-	    fi
+			iptables -t nat -A POSTROUTING -s 10.9.0.0/24  ! -d 10.9.0.1 -j SNAT --to $IP #This line and the next one are added for tcp server instance
+			sed -i "1 a\iptables -t nat -A POSTROUTING -s 10.9.0.0/24 -j SNAT --to $IP" $RCLOCAL
+		fi
 	   fi
 	
 	if iptables -L | grep -q REJECT; then
@@ -632,12 +630,12 @@ fi
 		sed -i "1 a\iptables -I FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT" $RCLOCAL
 		fi
 		if [ "$TCP" = 1 ]; then
-		iptables -I INPUT -p udp --dport $PORTTCP -j ACCEPT #This line and next 5 lines have been added for tcp support
-		iptables -I FORWARD -s 1.8.0.0/24 -j ACCEPT
-		iptables -I FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT
-		sed -i "1 a\iptables -I INPUT -p tcp --dport $PORTTCP -j ACCEPT" $RCLOCAL
-		sed -i "1 a\iptables -I FORWARD -s 1.8.0.0/24 -j ACCEPT" $RCLOCAL
-		sed -i "1 a\iptables -I FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT" $RCLOCAL
+			iptables -I INPUT -p udp --dport $PORTTCP -j ACCEPT #This line and next 5 lines have been added for tcp support
+			iptables -I FORWARD -s 10.9.0.0/24 -j ACCEPT
+			iptables -I FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT
+			sed -i "1 a\iptables -I INPUT -p tcp --dport $PORTTCP -j ACCEPT" $RCLOCAL
+			sed -i "1 a\iptables -I FORWARD -s 10.9.0.0/24 -j ACCEPT" $RCLOCAL
+			sed -i "1 a\iptables -I FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT" $RCLOCAL
 		fi
 	fi
 	# And finally, restart OpenVPN
