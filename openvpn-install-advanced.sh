@@ -9,7 +9,7 @@
 
 ###############################################################################################################
 # START_VARIABLE_SECTION
-# This section contains setup of variables
+# This section contains setup and variables
 ###############################################################################################################
 
 TCP_SERVICE_AND_CONFIG_NAME="openvpn_tcp"
@@ -166,12 +166,17 @@ if [ -e /etc/openvpn/$UDP_SERVICE_AND_CONFIG_NAME.conf -o -e /etc/openvpn/$TCP_S
 			./easyrsa --batch revoke "$CLIENT"
 			./easyrsa gen-crl
 			# And restart
-			if [[ -e /etc/openvpn/$UDP_SERVICE_AND_CONFIG_NAME.conf ]]; then
-				sudo systemctl restart openvpn.service
+			
+			if pgrep systemd-journal; then
+				systemctl restart openvpn
+			else
+				if [[ "$OS" = 'debian' ]]; then
+					/etc/init.d/openvpn restart
+				else
+					service openvpn restart
+				fi
 			fi
-			if [[ -e /etc/openvpn/$TCP_SERVICE_AND_CONFIG_NAME.conf ]]; then
-				sudo systemctl restart openvpn.service
-			fi
+			
 			echo ""
 			echo "Certificate for client \"$CLIENT\" revoked"
 			exit
@@ -661,7 +666,9 @@ ExecStart=/usr/sbin/openvpn --daemon --writepid /var/run/openvpn/$UDP_SERVICE_AN
 
 [Install]
 WantedBy=multi-user.target" > /etc/systemd/system/$UDP_SERVICE_AND_CONFIG_NAME.service
-		sudo systemctl enable $UDP_SERVICE_AND_CONFIG_NAME.service
+		if pgrep systemd-journal; then
+			sudo systemctl enable $UDP_SERVICE_AND_CONFIG_NAME.service
+		fi
 	fi
 
 	if [ "$TCP" = 1 ]; then
@@ -677,10 +684,20 @@ ExecStart=/usr/sbin/openvpn --daemon --writepid /var/run/openvpn/$TCP_SERVICE_AN
 
 [Install]
 WantedBy=multi-user.target" > /etc/systemd/system/$TCP_SERVICE_AND_CONFIG_NAME.service
-		sudo systemctl enable $TCP_SERVICE_AND_CONFIG_NAME.service
+		if pgrep systemd-journal; then
+			sudo systemctl enable $TCP_SERVICE_AND_CONFIG_NAME.service
+		fi
 	fi
 	
-	sudo systemctl start openvpn.service
+	if pgrep systemd-journal; then
+		sudo systemctl start openvpn.service
+	else
+		if [[ "$OS" = 'debian' ]]; then
+			/etc/init.d/openvpn start
+		else
+			service openvpn start
+		fi
+	fi
 	
 	###############################################################################################################
 	# END_SERVICE_SECTION
