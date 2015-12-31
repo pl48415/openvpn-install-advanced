@@ -235,8 +235,7 @@ else
 	while :
 	do
 	clear
-	echo "Do you want UDP server?"
-	read -p "y or n " -e -i y UDP
+	read -p "Do you want to run a UDP server [y/n]: " -e -i y UDP
         case $UDP in
 	       y)   UDP=1
 	    break ;;
@@ -248,9 +247,18 @@ else
 	 while :
 	do
 	clear
-	echo "Here be dragons!!! If you're using this to get past firewalls then go ahead and choose *y*, but please understand http://sites.inka.de/bigred/devel/tcp-tcp.html"
-	echo "Do you want TCP server?"
-	read -p "y or n " -e -i n TCP
+	echo "***************************************************"
+	echo "*                   !!!!!NB!!!!!                  *"
+	echo "*                                                 *"
+	echo "* Here be dragons!!! If you're using this to get  *"
+	echo "* past firewalls then go ahead and choose *y*,    *"
+	echo "* but please read and understand                  *"
+	echo "*                                                 *"
+	echo "* http://sites.inka.de/bigred/devel/tcp-tcp.html  *"
+	echo "* http://tinyurl.com/34qzu5z                      *"
+	echo "***************************************************"
+	echo ""
+	read -p "Do you want to run a TCP server [y/n]: " -e -i n TCP
         case $TCP in
 	       y)   TCP=1
 	    break ;;
@@ -263,38 +271,52 @@ else
 	  fi
 	 done
 	 if [ "$UDP" = 1 ]; then
-	echo "What UDP port do you want for OpenVPN?"
-	read -p "Port: " -e -i 1194 PORT
+	clear
+	read -p "What UDP port do you want to run OpenVPN on?: " -e -i 1194 PORT
 	 fi
 	 if [ "$TCP" = 1 ]; then
-	echo  "What TCP port do you want for OpenVPN?"
-	read -p "Port: " -e -i 443 PORTTCP
+	clear
+	read -p "What TCP port do you want to run OpenVPN on?: " -e -i 443 PORTTCP
 	 fi
        while :
 	do
 	clear
-	     
-	read -p "Do you want 2048bit or 4096bit key size? " -e -i 2048 KEYSIZE
-	 case $KEYSIZE in
-	    2048) KEYSIZE=2048
-		 break ;;
-		4096) KEYSIZE=4096
-         break ;;
-     esac		 
+	echo "What size do you want your key to be? :"
+	echo "     1) 2048bits"
+	echo "     2) 4096bits"
+	echo ""
+	read -p "Key Size [1-2]: " -e -i 1 KEYSIZE
+	case $KEYSIZE in
+		1)
+			KEYSIZE=2048
+			break
+		;;
+		2)
+			KEYSIZE=4096
+			break
+		;;
+	esac
 	done
 	
 	 while :
 	do
 	clear
-	     
-	read -p "Do you want 256bit or 512bit SHA digest? " -e -i 256 DIGEST
-	 case $DIGEST in
-		256) DIGEST=SHA256
-         break ;;
-        512) DIGEST=SHA512
-          break ;;	
-        esac		  
-	done 
+	echo "What size do you want your SHA digest to be? :"
+	echo "     1) 256bits"
+	echo "     2) 512bits"
+	echo ""
+	read -p "Digest Size [1-2]: " -e -i 1 DIGEST
+	case $DIGEST in
+		1)
+			DIGEST=SHA256
+			break
+		;;
+        2)
+			DIGEST=SHA512
+			break
+		;;	
+	esac
+	done
 	
 	while :
 	do
@@ -306,7 +328,7 @@ else
 	 echo "     4) CAMELLIA-256-CBC"
 	 echo "     5) CAMELLIA-128-CBC"
 	 echo ""    
-	read -p "" -e -i 1 CIPHER
+	read -p "Cipher [1-5]: " -e -i 1 CIPHER
 	 case $CIPHER in
 	    1) CIPHER=AES-256-CBC
 		 break ;;
@@ -323,7 +345,7 @@ else
     while :
     do
     clear
-    read -p "Do you want to use additional TLS authentication(y/n): " -e -i y TLS
+    read -p "Do you want to use additional TLS authentication [y/n]: " -e -i y TLS
      case $TLS in
       y) TLS=1
       break ;;
@@ -335,7 +357,7 @@ else
       while :
     do
     clear
-    echo "Do you want to enable internal networking for the VPN(iptables olnly)?"
+    echo "Do you want to enable internal networking for the VPN(iptables only)?"
 	echo "This can allow VPN clients to communicate between them"
 	read -p "Allow internal networking [y/n]: " -e -i y INTERNALNETWORK
      case $INTERNALNETWORK in
@@ -377,7 +399,7 @@ else
         esac
       done
         
-	echo ""
+	clear
 	if [ "$DNSRESOLVER" = 0 ]; then    #If user wants to use his own DNS resolver this selection is skipped
 	echo "What DNS do you want to use with the VPN?"
 	echo "   1) Current system resolvers"
@@ -386,10 +408,11 @@ else
 	echo "   4) NTT"
 	echo "   5) Hurricane Electric"
 	echo "   6) Google"
+	echo ""
 	read -p "DNS [1-6]: " -e -i 1 DNS
     fi
        
-	echo ""
+	clear
 	echo "Finally, tell me your name for the client cert"
 	echo "Please, use one word only, no special characters"
 	read -p "Client name: " -e -i client CLIENT
