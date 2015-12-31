@@ -7,6 +7,13 @@
 # your Debian/Ubuntu/CentOS box. It has been designed to be as unobtrusive and
 # universal as possible.
 
+###############################################################################################################
+# START_VARIABLE_SECTION
+# This section contains setup of variables
+###############################################################################################################
+
+TCP_SERVICE_AND_CONFIG_NAME="openvpn_tcp"
+UDP_SERVICE_AND_CONFIG_NAME="openvpn_udp"
 
 if [[ "$USER" != 'root' ]]; then
 	echo "Sorry, you need to run this as root"
@@ -37,6 +44,11 @@ else
 	echo "Looks like you aren't running this installer on a Debian, Ubuntu or CentOS system"
 	exit
 fi
+
+###############################################################################################################
+# END_VARIABLE_SECTION
+###############################################################################################################
+
 
 newclient () {
 	# This function is used to create udp client .ovpn file
@@ -89,7 +101,7 @@ if [[ "$IP" = "" ]]; then
 fi
 
 
-if [ -e /etc/openvpn/udp.conf -o -e /etc/openvpn/tcp.conf ]; then    #check if udp or tcp config file is present
+if [ -e /etc/openvpn/$UDP_SERVICE_AND_CONFIG_NAME.conf -o -e /etc/openvpn/$TCP_SERVICE_AND_CONFIG_NAME.conf ]; then    #check if udp or tcp config file is present
 	while :
 	do
 	clear
@@ -110,9 +122,9 @@ if [ -e /etc/openvpn/udp.conf -o -e /etc/openvpn/tcp.conf ]; then    #check if u
 			cd /etc/openvpn/easy-rsa/
 			./easyrsa build-client-full "$CLIENT" nopass
 			# Generates the custom client.ovpn
-			if [[ -e /etc/openvpn/udp.conf ]]; then
+			if [[ -e /etc/openvpn/$UDP_SERVICE_AND_CONFIG_NAME.conf ]]; then
 				TLS=0
-				if [ -n "$(cat /etc/openvpn/udp.conf | grep tls-auth)" ]; then #check if TLS is enabled in server config file so that static TLS key can be added to new client
+				if [ -n "$(cat /etc/openvpn/$UDP_SERVICE_AND_CONFIG_NAME.conf | grep tls-auth)" ]; then #check if TLS is enabled in server config file so that static TLS key can be added to new client
 					TLS=1 
 				fi
 				newclient "$CLIENT"
@@ -120,9 +132,9 @@ if [ -e /etc/openvpn/udp.conf -o -e /etc/openvpn/tcp.conf ]; then    #check if u
 			fi
 			
 			#everything here is the same as above just for the tcp client
-			if [[ -e /etc/openvpn/tcp.conf ]]; then
+			if [[ -e /etc/openvpn/$TCP_SERVICE_AND_CONFIG_NAME.conf ]]; then
 				TLS=0
-				if [ -n "$(cat /etc/openvpn/tcp.conf | grep tls-auth)" ]; then
+				if [ -n "$(cat /etc/openvpn/$TCP_SERVICE_AND_CONFIG_NAME.conf | grep tls-auth)" ]; then
 					TLS=1
 				fi
 				newclienttcp "$CLIENT"
@@ -154,12 +166,12 @@ if [ -e /etc/openvpn/udp.conf -o -e /etc/openvpn/tcp.conf ]; then    #check if u
 			./easyrsa --batch revoke "$CLIENT"
 			./easyrsa gen-crl
 			# And restart
-				if [[ -e /etc/openvpn/udp.conf ]]; then
-				sudo systemctl restart udp.service
-				fi
-                if [[ -e /etc/openvpn/tcp.conf ]]; then
-                sudo systemctl restart tcp.service
-                fi			
+			if [[ -e /etc/openvpn/$UDP_SERVICE_AND_CONFIG_NAME.conf ]]; then
+				sudo systemctl restart openvpn.service
+			fi
+			if [[ -e /etc/openvpn/$TCP_SERVICE_AND_CONFIG_NAME.conf ]]; then
+				sudo systemctl restart openvpn.service
+			fi
 			echo ""
 			echo "Certificate for client \"$CLIENT\" revoked"
 			exit
@@ -168,8 +180,8 @@ if [ -e /etc/openvpn/udp.conf -o -e /etc/openvpn/tcp.conf ]; then    #check if u
 			echo ""
 			read -p "Do you really want to remove OpenVPN? [y/n]: " -e -i n REMOVE
 			if [[ "$REMOVE" = 'y' ]]; then
-			if [[ -e /etc/openvpn/udp.conf ]]; then  #removal of udp firewall rules
-				PORT=$(grep '^port ' /etc/openvpn/udp.conf | cut -d " " -f 2)
+			if [[ -e /etc/openvpn/$UDP_SERVICE_AND_CONFIG_NAME.conf ]]; then  #removal of udp firewall rules
+				PORT=$(grep '^port ' /etc/openvpn/$UDP_SERVICE_AND_CONFIG_NAME.conf | cut -d " " -f 2)
 				    iptables -L | grep -q REJECT
 					sed -i "/iptables -I INPUT -p udp --dport $PORT -j ACCEPT/d" $RCLOCAL
 					sed -i "/iptables -I FORWARD -s 10.8.0.0\/24 -j ACCEPT/d" $RCLOCAL
@@ -178,8 +190,8 @@ if [ -e /etc/openvpn/udp.conf -o -e /etc/openvpn/tcp.conf ]; then    #check if u
 				sed -i '/iptables -t nat -A POSTROUTING -s 10.8.0.0\/24 -j SNAT --to /d' $RCLOCAL
 				fi
 				
-				if [[ -e /etc/openvpn/tcp.conf ]]; then #removal of tcp firewall rules
-				PORT=$(grep '^port ' /etc/openvpn/tcp.conf | cut -d " " -f 2)
+				if [[ -e /etc/openvpn/$TCP_SERVICE_AND_CONFIG_NAME.conf ]]; then #removal of tcp firewall rules
+				PORT=$(grep '^port ' /etc/openvpn/$TCP_SERVICE_AND_CONFIG_NAME.conf | cut -d " " -f 2)
 				
 				iptables -L | grep -q REJECT
 					sed -i "/iptables -I INPUT -p tcp --dport $PORT -j ACCEPT/d" $RCLOCAL
@@ -462,7 +474,7 @@ iptables -t nat -A PREROUTING -i tun+ -p tcp --dport 80 -j REDIRECT --to-port 80
 	cp pki/ca.crt pki/private/ca.key pki/dh.pem pki/issued/server.crt pki/private/server.key /etc/openvpn
 	if [ "$UDP" = 1 ]; then
 	# Generate udp.conf
-	echo "port $PORT
+		echo "port $PORT
 proto udp
 dev tun
 ca ca.crt
@@ -474,54 +486,55 @@ topology subnet
 server 10.8.0.0 255.255.255.0
 cipher $CIPHER
 auth $DIGEST
-ifconfig-pool-persist ipp.txt" > /etc/openvpn/udp.conf
-	echo 'push "redirect-gateway def1 bypass-dhcp"' >> /etc/openvpn/udp.conf
-	if [ $TLS = 1 ]; then
-	echo "--tls-auth /etc/openvpn/easy-rsa/pki/private/ta.key 0" >> /etc/openvpn/udp.conf #TLS key information added to config file
-	fi
+ifconfig-pool-persist ipp.txt" > /etc/openvpn/$UDP_SERVICE_AND_CONFIG_NAME.conf
+		echo 'push "redirect-gateway def1 bypass-dhcp"' >> /etc/openvpn/$UDP_SERVICE_AND_CONFIG_NAME.conf
+		if [ $TLS = 1 ]; then
+			echo "--tls-auth /etc/openvpn/easy-rsa/pki/private/ta.key 0" >> /etc/openvpn/$UDP_SERVICE_AND_CONFIG_NAME.conf #TLS key information added to config file
+		fi
 	# DNS
-	case $DNS in
-		1) 
-		# Obtain the resolvers from resolv.conf and use them for OpenVPN
-		grep -v '#' /etc/resolv.conf | grep 'nameserver' | grep -E -o '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | while read line; do
-			echo "push \"dhcp-option DNS $line\"" >> /etc/openvpn/udp.conf
-		done
-		;;
-		2)
-		echo 'push "dhcp-option DNS 208.67.222.222"' >> /etc/openvpn/udp.conf
-		echo 'push "dhcp-option DNS 208.67.220.220"' >> /etc/openvpn/udp.conf
-		;;
-		3) 
-		echo 'push "dhcp-option DNS 4.2.2.2"' >> /etc/openvpn/udp.conf
-		echo 'push "dhcp-option DNS 4.2.2.4"' >> /etc/openvpn/udp.conf
-		;;
-		4) 
-		echo 'push "dhcp-option DNS 129.250.35.250"' >> /etc/openvpn/udp.conf
-		echo 'push "dhcp-option DNS 129.250.35.251"' >> /etc/openvpn/udp.conf
-		;;
-		5) 
-		echo 'push "dhcp-option DNS 74.82.42.42"' >> /etc/openvpn/udp.conf
-		;;
-		6) 
-		echo 'push "dhcp-option DNS 8.8.8.8"' >> /etc/openvpn/udp.conf
-		echo 'push "dhcp-option DNS 8.8.4.4"' >> /etc/openvpn/udp.conf
-		;;
-		7)
-		echo 'push "dhcp-option DNS 10.8.0.1"' >> /etc/openvpn/udp.conf
-	esac
-	echo "keepalive 10 120
+		case $DNS in
+			1) 
+			# Obtain the resolvers from resolv.conf and use them for OpenVPN
+			grep -v '#' /etc/resolv.conf | grep 'nameserver' | grep -E -o '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | while read line; do
+				echo "push \"dhcp-option DNS $line\"" >> /etc/openvpn/$UDP_SERVICE_AND_CONFIG_NAME.conf
+			done
+			;;
+			2)
+			echo 'push "dhcp-option DNS 208.67.222.222"' >> /etc/openvpn/$UDP_SERVICE_AND_CONFIG_NAME.conf
+			echo 'push "dhcp-option DNS 208.67.220.220"' >> /etc/openvpn/$UDP_SERVICE_AND_CONFIG_NAME.conf
+			;;
+			3) 
+			echo 'push "dhcp-option DNS 4.2.2.2"' >> /etc/openvpn/$UDP_SERVICE_AND_CONFIG_NAME.conf
+			echo 'push "dhcp-option DNS 4.2.2.4"' >> /etc/openvpn/$UDP_SERVICE_AND_CONFIG_NAME.conf
+			;;
+			4) 
+			echo 'push "dhcp-option DNS 129.250.35.250"' >> /etc/openvpn/$UDP_SERVICE_AND_CONFIG_NAME.conf
+			echo 'push "dhcp-option DNS 129.250.35.251"' >> /etc/openvpn/$UDP_SERVICE_AND_CONFIG_NAME.conf
+			;;
+			5) 
+			echo 'push "dhcp-option DNS 74.82.42.42"' >> /etc/openvpn/$UDP_SERVICE_AND_CONFIG_NAME.conf
+			;;
+			6) 
+			echo 'push "dhcp-option DNS 8.8.8.8"' >> /etc/openvpn/$UDP_SERVICE_AND_CONFIG_NAME.conf
+			echo 'push "dhcp-option DNS 8.8.4.4"' >> /etc/openvpn/$UDP_SERVICE_AND_CONFIG_NAME.conf
+			;;
+			7)
+			echo 'push "dhcp-option DNS 10.8.0.1"' >> /etc/openvpn/$UDP_SERVICE_AND_CONFIG_NAME.conf
+		esac
+		echo "keepalive 10 120
 comp-lzo
 persist-key
 persist-tun
 status openvpn-status.log
 verb 3
-crl-verify /etc/openvpn/easy-rsa/pki/crl.pem" >> /etc/openvpn/udp.conf
- if [ "$INTERNALNETWORK" = 1 ]; then
-echo "client-to-client" >> /etc/openvpn/udp.conf
-fi
- fi 
- if [ "$TCP" = 1 ]; then
-echo "port $PORTTCP
+crl-verify /etc/openvpn/easy-rsa/pki/crl.pem" >> /etc/openvpn/$UDP_SERVICE_AND_CONFIG_NAME.conf
+		if [ "$INTERNALNETWORK" = 1 ]; then
+			echo "client-to-client" >> /etc/openvpn/$UDP_SERVICE_AND_CONFIG_NAME.conf
+		fi
+	fi 
+	
+	if [ "$TCP" = 1 ]; then
+		echo "port $PORTTCP
 proto tcp
 dev tun
 ca ca.crt
@@ -535,55 +548,53 @@ ifconfig-pool-persist ipp.txt
 cipher $CIPHER
 auth $DIGEST
 sndbuf 0
-rcvbuf 0" > /etc/openvpn/tcp.conf
-	echo 'push "redirect-gateway def1 bypass-dhcp"' >> /etc/openvpn/tcp.conf
+rcvbuf 0" > /etc/openvpn/$TCP_SERVICE_AND_CONFIG_NAME.conf
+		echo 'push "redirect-gateway def1 bypass-dhcp"' >> /etc/openvpn/$TCP_SERVICE_AND_CONFIG_NAME.conf
 	
-	
-	if [ $TLS = 1 ]; then
-	echo "--tls-auth /etc/openvpn/easy-rsa/pki/private/ta.key 0" >> /etc/openvpn/tcp.conf #TLS key information added to config file
-	fi	
+		if [ $TLS = 1 ]; then
+			echo "--tls-auth /etc/openvpn/easy-rsa/pki/private/ta.key 0" >> /etc/openvpn/$TCP_SERVICE_AND_CONFIG_NAME.conf #TLS key information added to config file
+		fi	
 	# DNS
-	case $DNS in
-		1) 
-		# Obtain the resolvers from resolv.conf and use them for OpenVPN
-		grep -v '#' /etc/resolv.conf | grep 'nameserver' | grep -E -o '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | while read line; do
-			echo "push \"dhcp-option DNS $line\"" >> /etc/openvpn/tcp.conf
-		done
-		;;
-		2)
-		echo 'push "dhcp-option DNS 208.67.222.222"' >> /etc/openvpn/tcp.conf
-		echo 'push "dhcp-option DNS 208.67.220.220"' >> /etc/openvpn/tcp.conf
-		;;
-		3) 
-		echo 'push "dhcp-option DNS 4.2.2.2"' >> /etc/openvpn/tcp.conf
-		echo 'push "dhcp-option DNS 4.2.2.4"' >> /etc/openvpn/tcp.conf
-		;;
-		4) 
-		echo 'push "dhcp-option DNS 129.250.35.250"' >> /etc/openvpn/tcp.conf
-		echo 'push "dhcp-option DNS 129.250.35.251"' >> /etc/openvpn/tcp.conf
-		;;
-		5) 
-		echo 'push "dhcp-option DNS 74.82.42.42"' >> /etc/openvpn/tcp.conf
-		;;
-		6) 
-		echo 'push "dhcp-option DNS 8.8.8.8"' >> /etc/openvpn/tcp.conf
-		echo 'push "dhcp-option DNS 8.8.4.4"' >> /etc/openvpn/tcp.conf
-		;;
-		7)
-		echo 'push "dhcp-option DNS 10.9.0.1"' >> /etc/openvpn/tcp.conf
-	esac
-	echo "keepalive 10 120
+		case $DNS in
+			1) 
+			# Obtain the resolvers from resolv.conf and use them for OpenVPN
+			grep -v '#' /etc/resolv.conf | grep 'nameserver' | grep -E -o '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | while read line; do
+				echo "push \"dhcp-option DNS $line\"" >> /etc/openvpn/$TCP_SERVICE_AND_CONFIG_NAME.conf
+			done
+			;;
+			2)
+			echo 'push "dhcp-option DNS 208.67.222.222"' >> /etc/openvpn/$TCP_SERVICE_AND_CONFIG_NAME.conf
+			echo 'push "dhcp-option DNS 208.67.220.220"' >> /etc/openvpn/$TCP_SERVICE_AND_CONFIG_NAME.conf
+			;;
+			3) 
+			echo 'push "dhcp-option DNS 4.2.2.2"' >> /etc/openvpn/$TCP_SERVICE_AND_CONFIG_NAME.conf
+			echo 'push "dhcp-option DNS 4.2.2.4"' >> /etc/openvpn/$TCP_SERVICE_AND_CONFIG_NAME.conf
+			;;
+			4) 
+			echo 'push "dhcp-option DNS 129.250.35.250"' >> /etc/openvpn/$TCP_SERVICE_AND_CONFIG_NAME.conf
+			echo 'push "dhcp-option DNS 129.250.35.251"' >> /etc/openvpn/$TCP_SERVICE_AND_CONFIG_NAME.conf
+			;;
+			5) 
+			echo 'push "dhcp-option DNS 74.82.42.42"' >> /etc/openvpn/$TCP_SERVICE_AND_CONFIG_NAME.conf
+			;;
+			6) 
+			echo 'push "dhcp-option DNS 8.8.8.8"' >> /etc/openvpn/$TCP_SERVICE_AND_CONFIG_NAME.conf
+			echo 'push "dhcp-option DNS 8.8.4.4"' >> /etc/openvpn/$TCP_SERVICE_AND_CONFIG_NAME.conf
+			;;
+			7)
+			echo 'push "dhcp-option DNS 10.9.0.1"' >> /etc/openvpn/$TCP_SERVICE_AND_CONFIG_NAME.conf
+		esac
+		echo "keepalive 10 120
 comp-lzo
 persist-key
 persist-tun
 status openvpn-status.log
 verb 3
-crl-verify /etc/openvpn/easy-rsa/pki/crl.pem" >> /etc/openvpn/tcp.conf
- if [ "$INTERNALNETWORK" = 1 ]; then
-echo "client-to-client" >> /etc/openvpn/tcp.conf
-fi
- fi
-
+crl-verify /etc/openvpn/easy-rsa/pki/crl.pem" >> /etc/openvpn/$TCP_SERVICE_AND_CONFIG_NAME.conf
+		if [ "$INTERNALNETWORK" = 1 ]; then
+			echo "client-to-client" >> /etc/openvpn/$TCP_SERVICE_AND_CONFIG_NAME.conf
+		fi
+	fi
 
 	# Enable net.ipv4.ip_forward for the system
 	sed -i 's|#net.ipv4.ip_forward=1|net.ipv4.ip_forward=1|' /etc/sysctl.conf
@@ -633,38 +644,47 @@ fi
 			sed -i "1 a\iptables -I FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT" $RCLOCAL
 		fi
 	fi
-	# And finally, restart OpenVPN
-	      if [ "$UDP" = 1 ]; then
-			echo "[Unit]
+	###############################################################################################################
+	# START_SERVICE_SECTION
+	# Install and start service for both UDP and TCP
+	###############################################################################################################
+	if [ "$UDP" = 1 ]; then
+		echo "[Unit]
+#Created by openvpn-install-advanced (https://github.com/pl48415/openvpn-install-advanced)
 Description=OpenVPN Robust And Highly Flexible Tunneling Application On <server>
 After=syslog.target network.target
 
 [Service]
 Type=forking
-PIDFile=/var/run/openvpn/udp.pid
-ExecStart=/usr/sbin/openvpn --daemon --writepid /var/run/openvpn/udp.pid --cd /etc/openvpn/ --config udp.conf
+PIDFile=/var/run/openvpn/$UDP_SERVICE_AND_CONFIG_NAME.pid
+ExecStart=/usr/sbin/openvpn --daemon --writepid /var/run/openvpn/$UDP_SERVICE_AND_CONFIG_NAME.pid --cd /etc/openvpn/ --config $UDP_SERVICE_AND_CONFIG_NAME.conf
 
 [Install]
-WantedBy=multi-user.target" > /etc/systemd/system/udp.service
-           sudo systemctl enable udp.service
-		   sudo systemctl start udp.service
-		   fi
-		   
-		   if [ "$TCP" = 1 ]; then
-echo "[Unit]
+WantedBy=multi-user.target" > /etc/systemd/system/$UDP_SERVICE_AND_CONFIG_NAME.service
+		sudo systemctl enable $UDP_SERVICE_AND_CONFIG_NAME.service
+	fi
+
+	if [ "$TCP" = 1 ]; then
+		echo "[Unit]
+#Created by openvpn-install-advanced (https://github.com/pl48415/openvpn-install-advanced)
 Description=OpenVPN Robust And Highly Flexible Tunneling Application On <server>
 After=syslog.target network.target
 
 [Service]
 Type=forking
-PIDFile=/var/run/openvpn/tcp.pid
-ExecStart=/usr/sbin/openvpn --daemon --writepid /var/run/openvpn/tcp.pid --cd /etc/openvpn/ --config tcp.conf
+PIDFile=/var/run/openvpn/$TCP_SERVICE_AND_CONFIG_NAME.pid
+ExecStart=/usr/sbin/openvpn --daemon --writepid /var/run/openvpn/$TCP_SERVICE_AND_CONFIG_NAME.pid --cd /etc/openvpn/ --config $TCP_SERVICE_AND_CONFIG_NAME.conf
 
 [Install]
-WantedBy=multi-user.target" > /etc/systemd/system/tcp.service
-sudo systemctl enable tcp.service
-sudo systemctl start tcp.service
-			fi
+WantedBy=multi-user.target" > /etc/systemd/system/$TCP_SERVICE_AND_CONFIG_NAME.service
+		sudo systemctl enable $TCP_SERVICE_AND_CONFIG_NAME.service
+	fi
+	
+	sudo systemctl start openvpn.service
+	
+	###############################################################################################################
+	# END_SERVICE_SECTION
+	###############################################################################################################
 
 	# Try to detect a NATed connection and ask about it to potential LowEndSpirit or Scaleway users
 	EXTERNALIP=$(wget -qO- ipv4.icanhazip.com)
