@@ -38,4 +38,5 @@ This script has been tested on
     - Debian 8
     - Ubuntu 14
  If this script helped you you can donate via Bitcoin : 1F6Rg1N1TzPvg2Wjvyv9mjQXFepHKQR7UC
+ 
  You can also donate to the creator of the original script : https://github.com/Nyr/openvpn-install
