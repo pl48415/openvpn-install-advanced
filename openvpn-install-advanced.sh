@@ -438,7 +438,7 @@ else
 			fi
          sed -i '/listen-on-v6/a \
          allow-recursion { 0.0.0.0/0; };' /etc/bind/named.conf.options  #We will permit recursion from any IP(0.0.0.0/0) because our DNS resolver is listening only on our VPN network so it is not a security issue
-           
+         sed -i '/listen-on-v6/d' /etc/bind/named.conf.options  
        fi
  if [ "$ANTIVIR" = 1 ]; then 
              apt-get install clamav clamav-daemon -y
