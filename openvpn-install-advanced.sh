@@ -165,6 +165,9 @@ if [ -e /etc/openvpn/$UDP_SERVICE_AND_CONFIG_NAME.conf -o -e /etc/openvpn/$TCP_S
 			cd /etc/openvpn/easy-rsa/
 			./easyrsa --batch revoke "$CLIENT"
 			./easyrsa gen-crl
+			rm -rf "pki/reqs/$CLIENT.req"
+			rm -rf "pki/private/$CLIENT.key"
+			rm -rf "pki/issued/$CLIENT.crt"
 			# And restart
 			
 			if pgrep systemd-journal; then
