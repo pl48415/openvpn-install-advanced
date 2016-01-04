@@ -181,7 +181,11 @@ if [ -e /etc/openvpn/$UDP_SERVICE_AND_CONFIG_NAME.conf -o -e /etc/openvpn/$TCP_S
 			echo "Certificate for client \"$CLIENT\" revoked"
 			exit
 			;;
-			3) 
+			###############################################################################################################
+			# START_OPENVPN_REMOVAL_SECTION
+			# This section contains to remove openvpn as installed by this script
+			###############################################################################################################
+			3)
 			echo ""
 			read -p "Do you really want to remove OpenVPN? [y/n]: " -e -i n REMOVE
 			if [[ "$REMOVE" = 'y' ]]; then
@@ -208,13 +212,21 @@ if [ -e /etc/openvpn/$UDP_SERVICE_AND_CONFIG_NAME.conf -o -e /etc/openvpn/$TCP_S
 				
 				rm -rf /etc/openvpn
 				rm -rf /usr/share/doc/openvpn*
+				if pgrep systemd-journal; then
+					sudo systemctl disable $UDP_SERVICE_AND_CONFIG_NAME.service
+					sudo systemctl disable $TCP_SERVICE_AND_CONFIG_NAME.service
+				fi
+				rm -rf /etc/systemd/system/$UDP_SERVICE_AND_CONFIG_NAME.service
+				rm -rf /etc/systemd/system/$TCP_SERVICE_AND_CONFIG_NAME.service
 				echo ""
 				echo "OpenVPN removed!"
-			
 				
 			fi
 			exit
 			;;
+			###############################################################################################################
+			# END_OPENVPN_REMOVAL_SECTION
+			###############################################################################################################
 			4) exit;;
 		esac
 	done
