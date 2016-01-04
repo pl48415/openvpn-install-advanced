@@ -211,7 +211,7 @@ if [ -e /etc/openvpn/$UDP_SERVICE_AND_CONFIG_NAME.conf -o -e /etc/openvpn/$TCP_S
 					sed -i "/iptables -I FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT/d" $RCLOCAL
 					sed -i '/iptables -t nat -A POSTROUTING -s 10.9.0.0\/24 -j SNAT --to /d' $RCLOCAL
 				fi
-				apt-get remove --purge -y openvpn openvpn-blacklist bind9 bind9utils bind9-doc clamav clamav-daemon privoxy havp
+				apt-get remove --purge -y openvpn openvpn-blacklist unbound clamav clamav-daemon privoxy havp
 				
 				rm -rf /etc/openvpn
 				rm -rf /usr/share/doc/openvpn*
@@ -440,21 +440,16 @@ else
 		
 		if [ "$DNSRESOLVER" = 1 ]; then
         DNS=7
-        #Installation of BIND9 caching DNS resolver
-           sudo apt-get install bind9 bind9utils bind9-doc -y
-           if [ "$UDP" = 1 ]; then
-            sed -i '/listen-on-v6/a \
-                    listen-on { 10.8.0.1;};' /etc/bind/named.conf.options
-           fi
-           
-			if [ "$TCP" = 1 ]; then 
-			 sed -i '/listen-on-v6/a \
-					listen-on { 10.9.0.1;};' /etc/bind/named.conf.options
-			fi
-         sed -i '/listen-on-v6/a \
-         allow-recursion { 0.0.0.0/0; };' /etc/bind/named.conf.options  #We will permit recursion from any IP(0.0.0.0/0) because our DNS resolver is listening only on our VPN network so it is not a security issue
-         sed -i '/listen-on-v6/d' /etc/bind/named.conf.options  
-       fi
+        #Installation of "Unbound" caching DNS resolver
+           sudo apt-get install unbound  -y
+        if [ "$TCP" -eq 1 ]; then
+        echo "interface: 10.9.0.1" >> /etc/unbound/unbound.conf
+        fi
+        if [ "$UDP" -eq 1 ]; then
+        echo "interface: 10.8.0.1" >> /etc/unbound/unbound.conf
+        fi
+        echo "access-control: 0.0.0.0/0 allow" >> /etc/unbound/unbound.conf
+        fi
  if [ "$ANTIVIR" = 1 ]; then 
              apt-get install clamav clamav-daemon -y
  service clamav-freshclam stop
@@ -806,5 +801,5 @@ newclienttcp "$CLIENT"
 	echo "If you want to add more clients, you simply need to run this script another time!"
 fi
 if [ "$DNSRESOLVER" = 1 ]; then 
-sudo service bind9 restart
+sudo service unbound restart
 fi
