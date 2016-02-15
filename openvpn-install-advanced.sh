@@ -349,10 +349,20 @@ else
 		;;
 	esac
 	done
+	AES=0
+        grep -q aes /proc/cpuinfo #Check for AES-NI availability
+        if [[ "$?" -eq 0 ]]; then
+         AES=1
+        fi
 
 	while :
 	do
 	clear
+	 if [[ "$AES" -eq 1 ]]; then
+         echo "Your CPU supports AES-NI instruction set."
+         echo "It enables faster AES encryption/decryption."
+         echo "Choosing AES will decrease CPU usage."
+         fi
 	 echo "Which cipher do you want to use? :"
 	 echo "     1) AES-256-CBC"
 	 echo "     2) AES-128-CBC"
