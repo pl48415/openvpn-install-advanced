@@ -440,8 +440,21 @@ else
            break;;
         esac
       done
+		while :
+		do
+			clear
+			 echo "Do you want to change default CA parameters?"
+			 echo "Common Name, Country Name, State or Province Name, etc."
+			 read -p "[y/n]: " -e -i n CACHANGE
+			 case $CACHANGE in
+			 y) CACHANGE=1
+					break;;
+			 n) CACHANGE=0
+					break;;
+			 esac
+		 done
+		 clear
 
-	clear
 	if [ "$DNSRESOLVER" = 0 ]; then    #If user wants to use his own DNS resolver this selection is skipped
 	echo "What DNS do you want to use with the VPN?"
 	echo "   1) Current system resolvers"
@@ -545,7 +558,12 @@ iptables -t nat -A PREROUTING -i tun+ -p tcp --dport 80 -j REDIRECT --to-port 80
 	cp vars.example vars
 
 	sed -i 's/#set_var EASYRSA_KEY_SIZE	2048/set_var EASYRSA_KEY_SIZE   '$KEYSIZE'/' vars #change key size to desired size
-	./easyrsa --batch build-ca nopass
+  if [ "$CACHANGE" = 1 ]; then
+		sed -i 's/#set_var EASYRSA_DN.*/set_var EASYRSA_DN     \"org\"/' vars
+		./easyrsa build-ca nopass
+	else
+		./easyrsa --batch build-ca nopass
+	fi
 	./easyrsa gen-dh
 	./easyrsa build-server-full server nopass
 	./easyrsa build-client-full "$CLIENT" nopass
@@ -855,3 +873,4 @@ fi
 if [ "$DNSRESOLVER" = 1 ]; then
 sudo service unbound restart
 fi
+
