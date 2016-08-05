@@ -446,7 +446,7 @@ else
 	echo "What DNS do you want to use with the VPN?"
 	echo "   1) Current system resolvers"
 	echo "   2) OpenDNS"
-	echo "   3) Level 3"
+	echo "   3) Verisign"
 	echo "   4) NTT"
 	echo "   5) Hurricane Electric"
 	echo "   6) Google"
@@ -591,8 +591,8 @@ ifconfig-pool-persist ipp.txt" > /etc/openvpn/$UDP_SERVICE_AND_CONFIG_NAME.conf
 			echo 'push "dhcp-option DNS 208.67.220.220"' >> /etc/openvpn/$UDP_SERVICE_AND_CONFIG_NAME.conf
 			;;
 			3)
-			echo 'push "dhcp-option DNS 4.2.2.2"' >> /etc/openvpn/$UDP_SERVICE_AND_CONFIG_NAME.conf
-			echo 'push "dhcp-option DNS 4.2.2.4"' >> /etc/openvpn/$UDP_SERVICE_AND_CONFIG_NAME.conf
+			echo 'push "dhcp-option DNS 64.6.64.6"' >> /etc/openvpn/$UDP_SERVICE_AND_CONFIG_NAME.conf
+			echo 'push "dhcp-option DNS 64.6.65.6"' >> /etc/openvpn/$UDP_SERVICE_AND_CONFIG_NAME.conf
 			;;
 			4)
 			echo 'push "dhcp-option DNS 129.250.35.250"' >> /etc/openvpn/$UDP_SERVICE_AND_CONFIG_NAME.conf
@@ -657,8 +657,8 @@ rcvbuf 0" > /etc/openvpn/$TCP_SERVICE_AND_CONFIG_NAME.conf
 			echo 'push "dhcp-option DNS 208.67.220.220"' >> /etc/openvpn/$TCP_SERVICE_AND_CONFIG_NAME.conf
 			;;
 			3)
-			echo 'push "dhcp-option DNS 4.2.2.2"' >> /etc/openvpn/$TCP_SERVICE_AND_CONFIG_NAME.conf
-			echo 'push "dhcp-option DNS 4.2.2.4"' >> /etc/openvpn/$TCP_SERVICE_AND_CONFIG_NAME.conf
+			echo 'push "dhcp-option DNS 64.6.64.6"' >> /etc/openvpn/$TCP_SERVICE_AND_CONFIG_NAME.conf
+			echo 'push "dhcp-option DNS 64.6.65.6"' >> /etc/openvpn/$TCP_SERVICE_AND_CONFIG_NAME.conf
 			;;
 			4)
 			echo 'push "dhcp-option DNS 129.250.35.250"' >> /etc/openvpn/$TCP_SERVICE_AND_CONFIG_NAME.conf
