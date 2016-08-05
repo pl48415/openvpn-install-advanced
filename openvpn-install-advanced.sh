@@ -455,20 +455,19 @@ else
     fi
 
 	clear
-	echo "Finally, tell me your name for the client cert"
+	echo "Tell me your name for the client cert"
 	echo "Please, use one word only, no special characters"
 	read -p "Client name: " -e -i client CLIENT
 	echo ""
-	echo "Okay, that was all I needed. We are ready to setup your OpenVPN server now"
-	read -n1 -r -p "Press any key to continue..."
+	
 		if [[ "$OS" = 'debian' ]]; then
-		apt-get update
-		apt-get install openvpn iptables openssl -y
+		apt-get update -qq
+		apt-get install openvpn iptables openssl -y -qq
 
 		if [ "$DNSRESOLVER" = 1 ]; then
         DNS=7
         #Installation of "Unbound" caching DNS resolver
-           sudo apt-get install unbound  -y
+           sudo apt-get install unbound  -y -qq
         if [ "$TCP" -eq 1 ]; then
         echo "interface: 10.9.0.1" >> /etc/unbound/unbound.conf
         fi
@@ -478,7 +477,7 @@ else
         echo "access-control: 0.0.0.0/0 allow" >> /etc/unbound/unbound.conf
         fi
  if [ "$ANTIVIR" = 1 ]; then
-             apt-get install clamav clamav-daemon -y
+             apt-get install clamav clamav-daemon  -qq -y
  service clamav-freshclam stop
  freshclam
  service clamav-freshclam start
@@ -494,7 +493,7 @@ sed -i '/\LOG_OKS true/c\LOG_OKS false'  /etc/havp/havp.config
  gpasswd -a clamav havp
  service clamav-daemon restart
  service havp restart
- apt-get install privoxy -y
+ apt-get install privoxy -y -qq
 sed -i '/listen-address  localhost:8118/c\listen-address  127.0.0.1:8118' /etc/privoxy/config
 HOST=$(hostname -f)
 sed -i "/hostname hostname.example.org/c\hostname "$HOST""  /etc/privoxy/config
@@ -527,7 +526,8 @@ iptables -t nat -A PREROUTING -i tun+ -p tcp --dport 80 -j REDIRECT --to-port 80
 			 esac
 			 done
 	fi
-
+        echo "Okay, that was all I needed. We are ready to setup your OpenVPN server now"
+	read -n1 -r -p "Press any key to continue..."
 	# An old version of easy-rsa was available by default in some openvpn packages
 	if [[ -d /etc/openvpn/easy-rsa/ ]]; then
 		rm -rf /etc/openvpn/easy-rsa/
